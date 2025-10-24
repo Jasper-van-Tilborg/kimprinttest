@@ -3,6 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --grid-gap: 20px;
+  --container-max-width: 1440px;
+  --grid-column-width: calc(
+    (var(--container-max-width) - (11 * var(--grid-gap))) / 12
+  );
 }
 
 @theme inline {
@@ -22,5 +27,102 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-outfit), sans-serif;
+}
+
+/* 12-kolommen grid systeem */
+.grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, var(--grid-column-width));
+  gap: var(--grid-gap);
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Kolom classes */
+.col-1 {
+  grid-column: span 1;
+}
+.col-2 {
+  grid-column: span 2;
+}
+.col-3 {
+  grid-column: span 3;
+}
+.col-4 {
+  grid-column: span 4;
+}
+.col-5 {
+  grid-column: span 5;
+}
+.col-6 {
+  grid-column: span 6;
+}
+.col-7 {
+  grid-column: span 7;
+}
+.col-8 {
+  grid-column: span 8;
+}
+.col-9 {
+  grid-column: span 9;
+}
+.col-10 {
+  grid-column: span 10;
+}
+.col-11 {
+  grid-column: span 11;
+}
+.col-12 {
+  grid-column: span 12;
+}
+
+/* Navbar stabiliteit */
+.navbar-link {
+  font-weight: 500 !important;
+  min-width: fit-content;
+  display: inline-block;
+  transition: color 0.2s ease;
+}
+
+/* Responsive gedrag */
+@media (max-width: 1440px) {
+  .grid-12 {
+    grid-template-columns: repeat(12, 1fr);
+    max-width: 100%;
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .grid-12 {
+    grid-template-columns: repeat(12, 1fr);
+    max-width: 100%;
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-12 {
+    grid-template-columns: repeat(6, 1fr);
+    padding: 0 12px;
+  }
+
+  .col-1,
+  .col-2,
+  .col-3,
+  .col-4,
+  .col-5,
+  .col-6,
+  .col-7,
+  .col-8,
+  .col-9,
+  .col-10,
+  .col-11,
+  .col-12 {
+    grid-column: span 6;
+  }
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "./components/Navbar";
 import DomeGallery from "./components/DomeGallery";
+import Footer from "./components/Footer";
 import { useState } from "react";
 
 export default function Home() {
@@ -30,7 +31,7 @@ export default function Home() {
     ]
   };
   return (
-    <div className="min-h-screen bg-[#FEF2EB]">
+    <div className="min-h-screen bg-[#FAFAFA]">
       {/* Header */}
       <Navbar activePage="home" />
 
@@ -90,22 +91,22 @@ export default function Home() {
           </div>
           
           {/* Product Grid */}
-          <div className="col-12 flex items-start" style={{ gap: '20px' }}>
-            {products[activeCategory as keyof typeof products].map((product, index) => (
-              <div key={index} className="text-center" style={{ width: '340px' }}>
-                <div className="bg-gray-200 rounded-lg mb-4 flex items-center justify-center" style={{ width: '340px', height: '395px' }}>
-                  <span className="text-gray-500">Product Image</span>
-                </div>
+          {products[activeCategory as keyof typeof products].map((product, index) => (
+            <div key={index} className="col-3">
+              <div className="bg-gray-200 rounded-lg mb-4 flex items-center justify-center" style={{ width: '100%', height: '395px' }}>
+                <span className="text-gray-500">Product Image</span>
+              </div>
+              <div className="flex items-center justify-between" style={{ width: '100%' }}>
                 <h3 className="font-medium text-gray-900">{product.name}</h3>
                 <p className="text-gray-600">{product.price}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Nu verkrijgbaar Section */}
-      <section className="py-16 bg-[#FEF2EB]">
+      <section className="py-16 bg-white">
         <div className="grid-12">
           <div className="col-12">
             <h2 className="font-bold text-gray-900 underline mb-8" style={{ fontSize: '26px' }}>Nu verkrijgbaar</h2>
@@ -184,72 +185,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-[#FEF2EB] py-16">
-        <div className="grid-12">
-          {/* Logo & Copyright */}
-          <div className="col-2 flex flex-col justify-center">
-            <div className="mb-4">
-              <Image 
-                src="/images/K-imprint logo.avif" 
-                alt="K-imprint Logo" 
-                width={120} 
-                height={63}
-                className="h-full w-auto"
-              />
-            </div>
-            <p className="text-gray-600">©K-imprint</p>
-            <p className="text-gray-600">All Rights Reserved</p>
-          </div>
-          
-          {/* Over ons */}
-          <div className="col-2">
-            <h4 className="font-bold text-gray-900 mb-4">Over ons</h4>
-            <ul className="space-y-2">
-              <li><Link href="/over-ons" className="text-gray-600 hover:text-[#8B4513] transition-colors">Over ons</Link></li>
-              <li><Link href="/contact" className="text-gray-600 hover:text-[#8B4513] transition-colors">Contact</Link></li>
-              <li><Link href="/offertes" className="text-gray-600 hover:text-[#8B4513] transition-colors">Offertes</Link></li>
-            </ul>
-          </div>
-          
-          {/* Links */}
-          <div className="col-2">
-            <h4 className="font-bold text-gray-900 mb-4">Links</h4>
-            <ul className="space-y-2">
-              <li><Link href="/privacy" className="text-gray-600 hover:text-[#8B4513] transition-colors">Privacy</Link></li>
-              <li><Link href="/algemene-voorwaarden" className="text-gray-600 hover:text-[#8B4513] transition-colors">Algemene Voorwaarden</Link></li>
-              <li><Link href="/size-guide" className="text-gray-600 hover:text-[#8B4513] transition-colors">Size Guide</Link></li>
-              <li><Link href="/faqs" className="text-gray-600 hover:text-[#8B4513] transition-colors">FAQs</Link></li>
-            </ul>
-          </div>
-          
-          {/* Volg ons */}
-          <div className="col-2">
-            <h4 className="font-bold text-gray-900 mb-4">Volg ons</h4>
-            <ul className="space-y-2">
-              <li><Link href="#" className="text-gray-600 hover:text-[#8B4513] transition-colors">Facebook</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-[#8B4513] transition-colors">Instagram</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-[#8B4513] transition-colors">TikTok</Link></li>
-            </ul>
-          </div>
-          
-              {/* Abonneer */}
-              <div className="col-4">
-                <h4 className="font-bold text-gray-900 mb-4">Abonneer</h4>
-                <p className="text-gray-600 mb-4">Krijg E-mail Updates over onze laatste collecties en tijdelijke offers.</p>
-                <div className="space-y-2">
-                  <input 
-                    type="email" 
-                    placeholder="Vul hier je email in" 
-                    className="w-full px-3 py-2 border-b border-black focus:outline-none focus:border-black text-gray-600"
-                  />
-                  <button className="px-4 py-2 border border-black text-black rounded-lg hover:bg-gray-50 transition-colors">
-                    Abonneer
-                  </button>
-                </div>
-              </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

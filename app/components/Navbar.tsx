@@ -7,7 +7,8 @@ interface NavbarProps {
 
 export default function Navbar({ activePage = 'home' }: NavbarProps) {
   return (
-    <header className="bg-[#FEF2EB] shadow-sm" style={{ height: '63px' }}>
+    <header className="bg-[#FAFAFA] relative" style={{ height: '63px' }}>
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-black to-transparent"></div>
       <div className="grid-12" style={{ height: '63px' }}>
         <div className="col-2 flex items-center justify-start" style={{ height: '63px' }}>
           {/* Logo */}
@@ -64,14 +65,14 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
               height={20}
             />
           </button>
-          <button className="p-2 text-gray-700 hover:text-[#8B4513] transition-colors">
+          <Link href="/account" className="p-2 text-gray-700 hover:text-[#8B4513] transition-colors">
             <Image 
               src="/images/person.svg" 
               alt="Account" 
               width={20} 
               height={20}
             />
-          </button>
+          </Link>
           <button className="p-2 text-gray-700 hover:text-[#8B4513] transition-colors">
             <Image 
               src="/images/Shopping cart.svg" 

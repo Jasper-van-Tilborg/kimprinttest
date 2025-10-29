@@ -1,0 +1,677 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "../../../hooks/useAuth";
+import { supabase } from "../../../lib/supabase";
+import AdminHeader from "../../components/AdminHeader";
+
+type Product = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  stock: number;
+  image_url: string;
+  sales_count: number;
+  created_at: string;
+};
+
+export default function AdminProducts() {
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"products" | "categories">("products");
+  const [categories, setCategories] = useState<{ id: string; name: string; description: string }[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDesc, setNewCategoryDesc] = useState("");
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/account");
+    }
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      if (!user) return;
+
+      try {
+        setProductsLoading(true);
+
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching products:", error);
+        } else if (data) {
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setProductsLoading(false);
+      }
+    }
+
+    fetchProducts();
+  }, [user]);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("*")
+          .order("name", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching categories:", error);
+        } else if (data) {
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    }
+
+    if (activeTab === "categories") {
+      fetchCategories();
+    }
+  }, [user, activeTab]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .insert([{ name: newCategoryName, description: newCategoryDesc }]);
+
+      if (error) {
+        console.error("Error adding category:", error);
+        alert("Fout bij het toevoegen van de categorie");
+      } else {
+        setNewCategoryName("");
+        setNewCategoryDesc("");
+        // Refresh categories
+        const { data } = await supabase
+          .from("categories")
+          .select("*")
+          .order("name", { ascending: true });
+        if (data) setCategories(data);
+      }
+    } catch (error) {
+      console.error("Error adding category:", error);
+    }
+  };
+
+  const handleEditCategory = (category: { id: string; name: string; description: string }) => {
+    setEditingCategory(category.id);
+    setEditName(category.name);
+    setEditDesc(category.description || "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategory(null);
+    setEditName("");
+    setEditDesc("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCategory || !editName.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .update({
+          name: editName,
+          description: editDesc,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editingCategory);
+
+      if (error) {
+        console.error("Error updating category:", error);
+        alert("Fout bij het bijwerken van de categorie");
+      } else {
+        // Refresh categories
+        const { data } = await supabase
+          .from("categories")
+          .select("*")
+          .order("name", { ascending: true });
+        if (data) setCategories(data);
+        handleCancelEdit();
+      }
+    } catch (error) {
+      console.error("Error updating category:", error);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!confirm("Weet je zeker dat je deze categorie wilt verwijderen?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", categoryId);
+
+      if (error) {
+        console.error("Error deleting category:", error);
+        alert("Fout bij het verwijderen van de categorie");
+      } else {
+        setCategories(categories.filter((c) => c.id !== categoryId));
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error);
+    }
+  };
+
+  const handleDelete = async (productId: string) => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", productId);
+
+      if (error) {
+        console.error("Error deleting product:", error);
+        alert("Fout bij het verwijderen van het product");
+      } else {
+        setProducts(products.filter((p) => p.id !== productId));
+        setDeleteConfirm(null);
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      alert("Fout bij het verwijderen van het product");
+    }
+  };
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "all" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const productCategories = Array.from(new Set(products.map((p) => p.category)));
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+        <div className="text-xl">Laden...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
+      <AdminHeader userEmail={user.email} onSignOut={handleSignOut} />
+
+      {/* Header Section */}
+      <section className="py-16">
+        <div className="grid-12">
+          <div className="col-12">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-5xl font-bold text-black mb-4">Producten Beheer</h1>
+                <p className="text-xl text-gray-700">
+                  {activeTab === "products" 
+                    ? `${products.length} product${products.length !== 1 ? "en" : ""} in totaal`
+                    : `${categories.length} categorie${categories.length !== 1 ? "ën" : ""} in totaal`
+                  }
+                </p>
+              </div>
+              {activeTab === "products" && (
+                <Link
+                  href="/admin/products/new"
+                  className="bg-black text-white px-8 py-4 rounded-lg hover:bg-gray-800 transition-all font-medium shadow-sm hover:shadow-md"
+                >
+                  + Nieuw Product Toevoegen
+                </Link>
+              )}
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-gray-200">
+              <button
+                onClick={() => setActiveTab("products")}
+                className={`px-6 py-3 font-medium transition-all border-b-2 ${
+                  activeTab === "products"
+                    ? "border-black text-black"
+                    : "border-transparent text-gray-500 hover:text-black"
+                }`}
+              >
+                Producten
+              </button>
+              <button
+                onClick={() => setActiveTab("categories")}
+                className={`px-6 py-3 font-medium transition-all border-b-2 ${
+                  activeTab === "categories"
+                    ? "border-black text-black"
+                    : "border-transparent text-gray-500 hover:text-black"
+                }`}
+              >
+                Categorieën
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Products Tab */}
+      {activeTab === "products" && (
+        <>
+          {/* Stats Cards */}
+          <section className="pb-8">
+        <div className="grid-12">
+          <div className="col-4">
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <p className="text-sm text-gray-600 mb-2">Totaal Producten</p>
+              <p className="text-3xl font-bold text-black">{products.length}</p>
+            </div>
+          </div>
+          <div className="col-4">
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <p className="text-sm text-gray-600 mb-2">Op Voorraad</p>
+              <p className="text-3xl font-bold text-black">
+                {products.filter((p) => p.stock > 0).length}
+              </p>
+            </div>
+          </div>
+          <div className="col-4">
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <p className="text-sm text-gray-600 mb-2">Totaal Verkocht</p>
+              <p className="text-3xl font-bold text-black">
+                {products.reduce((sum, p) => sum + (p.sales_count || 0), 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Filters Section */}
+      <section className="pb-8">
+        <div className="grid-12">
+          <div className="col-12">
+            <div className="bg-white rounded-lg p-8 border border-gray-200 shadow-sm">
+              <h2 className="font-bold text-black mb-6 text-xl">Filteren & Zoeken</h2>
+              <div className="flex gap-4">
+                {/* Zoeken */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Zoeken
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Zoek op naam of omschrijving..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors text-black"
+                  />
+                </div>
+
+                {/* Categorie Filter */}
+                <div className="w-64">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categorie
+                  </label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black bg-white transition-colors text-black"
+                  >
+                    <option value="all">Alle Categorieën</option>
+                    {productCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {(searchQuery || selectedCategory !== "all") && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">{filteredProducts.length}</span> van de{" "}
+                    <span className="font-semibold">{products.length}</span> producten weergegeven
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Products List */}
+      <section className="pb-16">
+        <div className="grid-12">
+          <div className="col-12">
+            {productsLoading ? (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="text-center py-16 text-gray-500">Producten laden...</div>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="text-center py-16">
+                  <p className="text-gray-500 text-lg mb-6">
+                    {searchQuery || selectedCategory !== "all"
+                      ? "Geen producten gevonden met deze filters"
+                      : "Nog geen producten toegevoegd"}
+                  </p>
+                  {!searchQuery && selectedCategory === "all" && (
+                    <Link
+                      href="/admin/products/new"
+                      className="inline-block bg-black text-white px-8 py-4 rounded-lg hover:bg-gray-800 transition-all font-medium shadow-sm hover:shadow-md"
+                    >
+                      + Voeg je eerste product toe
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 px-8 py-5 bg-[#FAFAFA] border-b border-gray-200 font-bold text-sm text-black">
+                  <div className="col-span-1">Foto</div>
+                  <div className="col-span-3">Product</div>
+                  <div className="col-span-2">Categorie</div>
+                  <div className="col-span-1 text-right">Prijs</div>
+                  <div className="col-span-1 text-right">Voorraad</div>
+                  <div className="col-span-1 text-right">Verkocht</div>
+                  <div className="col-span-3 text-right">Acties</div>
+                </div>
+
+                {/* Table Body */}
+                {filteredProducts.map((product, index) => (
+                  <div
+                    key={product.id}
+                    className={`grid grid-cols-12 gap-4 px-8 py-6 ${
+                      index !== filteredProducts.length - 1 ? "border-b border-gray-100" : ""
+                    } hover:bg-[#FAFAFA] transition-colors items-center`}
+                  >
+                    {/* Afbeelding */}
+                    <div className="col-span-1">
+                      <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden border border-gray-200">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                            N/A
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Naam */}
+                    <div className="col-span-3">
+                      <p className="font-bold text-black mb-1">{product.name}</p>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {product.description}
+                      </p>
+                    </div>
+
+                    {/* Categorie */}
+                    <div className="col-span-2">
+                      <span className="inline-block bg-black text-white px-4 py-1 rounded-full text-xs font-medium">
+                        {product.category}
+                      </span>
+                    </div>
+
+                    {/* Prijs */}
+                    <div className="col-span-1 text-right">
+                      <p className="font-bold text-black text-lg">
+                        €{product.price.toFixed(2)}
+                      </p>
+                    </div>
+
+                    {/* Voorraad */}
+                    <div className="col-span-1 text-right">
+                      <div className="inline-flex items-center gap-2">
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            product.stock === 0
+                              ? "bg-red-500"
+                              : product.stock < 10
+                              ? "bg-yellow-500"
+                              : "bg-green-500"
+                          }`}
+                        ></div>
+                        <p className="font-semibold text-black">{product.stock}</p>
+                      </div>
+                    </div>
+
+                    {/* Verkocht */}
+                    <div className="col-span-1 text-right">
+                      <p className="text-gray-700 font-medium">{product.sales_count || 0}</p>
+                    </div>
+
+                    {/* Acties */}
+                    <div className="col-span-3 text-right flex justify-end gap-3">
+                      <Link
+                        href={`/admin/products/edit/${product.id}`}
+                        className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-all text-sm font-medium"
+                      >
+                        Bewerken
+                      </Link>
+                      {deleteConfirm === product.id ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition-all text-sm font-medium"
+                          >
+                            Ja, verwijder
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(null)}
+                            className="bg-gray-200 text-black px-5 py-2 rounded-lg hover:bg-gray-300 transition-all text-sm font-medium"
+                          >
+                            Annuleren
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirm(product.id)}
+                          className="bg-white text-red-600 px-6 py-2 rounded-lg hover:bg-red-50 transition-all text-sm font-medium border border-red-600"
+                        >
+                          Verwijderen
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+        </>
+      )}
+
+      {/* Categories Tab */}
+      {activeTab === "categories" && (
+        <>
+          {/* Add Category */}
+          <section className="pb-8">
+            <div className="grid-12">
+              <div className="col-12">
+                <div className="bg-white rounded-lg p-8 border border-gray-200 shadow-sm">
+                  <h2 className="font-bold text-black mb-6 text-xl">Nieuwe Categorie Toevoegen</h2>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Naam *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Bijv. T-shirts"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors text-black"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Omschrijving
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Optionele omschrijving"
+                        value={newCategoryDesc}
+                        onChange={(e) => setNewCategoryDesc(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors text-black"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={handleAddCategory}
+                        className="bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-all font-medium whitespace-nowrap"
+                      >
+                        + Toevoegen
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Categories List */}
+          <section className="pb-16">
+            <div className="grid-12">
+              <div className="col-12">
+                {categories.length === 0 ? (
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                    <div className="text-center py-16">
+                      <p className="text-gray-500 text-lg mb-6">Nog geen categorieën toegevoegd</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    {/* Table Header */}
+                    <div className="grid grid-cols-12 gap-4 px-8 py-5 bg-[#FAFAFA] border-b border-gray-200 font-bold text-sm text-black">
+                      <div className="col-span-4">Naam</div>
+                      <div className="col-span-6">Omschrijving</div>
+                      <div className="col-span-2 text-right">Acties</div>
+                    </div>
+
+                    {/* Table Body */}
+                    {categories.map((category, index) => (
+                      <div
+                        key={category.id}
+                        className={`grid grid-cols-12 gap-4 px-8 py-6 ${
+                          index !== categories.length - 1 ? "border-b border-gray-100" : ""
+                        } ${editingCategory === category.id ? "bg-blue-50" : "hover:bg-[#FAFAFA]"} transition-colors items-center`}
+                      >
+                        {editingCategory === category.id ? (
+                          <>
+                            {/* Edit Mode - Naam */}
+                            <div className="col-span-4">
+                              <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-black"
+                                placeholder="Categorie naam"
+                              />
+                            </div>
+
+                            {/* Edit Mode - Omschrijving */}
+                            <div className="col-span-6">
+                              <input
+                                type="text"
+                                value={editDesc}
+                                onChange={(e) => setEditDesc(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-black"
+                                placeholder="Omschrijving"
+                              />
+                            </div>
+
+                            {/* Edit Mode - Acties */}
+                            <div className="col-span-2 text-right flex gap-2 justify-end">
+                              <button
+                                onClick={handleSaveEdit}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all text-sm font-medium"
+                              >
+                                Opslaan
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="bg-gray-200 text-black px-4 py-2 rounded-lg hover:bg-gray-300 transition-all text-sm font-medium"
+                              >
+                                Annuleren
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* View Mode - Naam */}
+                            <div className="col-span-4">
+                              <p className="font-bold text-black text-lg">{category.name}</p>
+                            </div>
+
+                            {/* View Mode - Omschrijving */}
+                            <div className="col-span-6">
+                              <p className="text-gray-600">{category.description || "Geen omschrijving"}</p>
+                            </div>
+
+                            {/* View Mode - Acties */}
+                            <div className="col-span-2 text-right flex gap-2 justify-end">
+                              <button
+                                onClick={() => handleEditCategory(category)}
+                                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-all text-sm font-medium"
+                              >
+                                Bewerken
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(category.id)}
+                                className="bg-red-100 text-red-700 px-6 py-2 rounded-lg hover:bg-red-200 transition-all text-sm font-medium"
+                              >
+                                Verwijderen
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+

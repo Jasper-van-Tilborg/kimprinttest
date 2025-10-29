@@ -3,7 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    // Gracefully handle refresh token errors
+    storageKey: 'supabase-auth',
+  },
+});
 
 // Types voor de database
 export type Product = {
@@ -50,11 +58,12 @@ export async function isAdmin(userId: string): Promise<boolean> {
     }
 
     // Haal de user's eigen data op (dit werkt altijd door de "view own profile" policy)
+    // Gebruik maybeSingle() in plaats van single() om geen error te krijgen bij 0 rows
     const { data, error } = await supabase
       .from('users')
       .select('role')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     console.log('Query result:', { data, error });
 
@@ -68,7 +77,8 @@ export async function isAdmin(userId: string): Promise<boolean> {
     }
 
     if (!data) {
-      console.log('No user data found');
+      console.log('No user data found in users table for userId:', userId);
+      console.log('User may not have a profile yet. Treating as non-admin.');
       return false;
     }
 

@@ -73,7 +73,7 @@ export default function ShoppingCart() {
                     className="flex gap-4 bg-gray-50 p-4 rounded-lg transition-all duration-200 hover:shadow-md"
                   >
                     {/* Product Image */}
-                    <div className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
                       {item.image_url ? (
                         <Image
                           src={item.image_url}

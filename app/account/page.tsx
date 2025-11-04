@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import FadeInScroll from "../components/FadeInScroll";
 import { useAuth } from "../../hooks/useAuth";
 import { isAdmin } from "../../lib/supabase";
 
@@ -97,7 +98,7 @@ export default function Account() {
       <main className="flex-1 py-16">
         <div className="grid-12">
           <div className="col-12">
-            <div className="max-w-md mx-auto">
+            <FadeInScroll className="max-w-md mx-auto">
               {/* Toggle Buttons */}
               <div className="flex space-x-4 mb-8">
                 <button
@@ -304,7 +305,7 @@ export default function Account() {
                   </form>
                 </div>
               )}
-            </div>
+            </FadeInScroll>
           </div>
         </div>
       </main>

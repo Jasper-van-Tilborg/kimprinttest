@@ -1,0 +1,19 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "css.validate": false,
+  "tailwindCSS.validate": true,
+  "tailwindCSS.experimental.classRegex": [
+    ["aspect-\\[([^)]+)\\]", "aspect-\\[([^)]+)\\]"],
+    ["bg-gradient-to-[a-z]+", "bg-gradient-to-[a-z]+"]
+  ],
+  "css.lint.unknownProperties": "ignore",
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.classAttributes": [
+    "class",
+    "className",
+    "classList"
+  ]
+}
+

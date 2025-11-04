@@ -96,29 +96,21 @@ body {
   transition: color 0.2s ease;
 }
 
-/* Responsive gedrag */
-@media (max-width: 1440px) {
+/* Responsive gedrag - Mobile First Approach */
+
+/* Mobile (max-width: 767px) */
+@media (max-width: 767px) {
+  :root {
+    --grid-gap: 16px;
+  }
+
   .grid-12 {
-    grid-template-columns: repeat(12, 1fr);
-    max-width: 100%;
+    grid-template-columns: repeat(4, 1fr);
     padding: 0 16px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .grid-12 {
-    grid-template-columns: repeat(12, 1fr);
-    max-width: 100%;
-    padding: 0 12px;
-  }
-}
-
-@media (max-width: 768px) {
-  .grid-12 {
-    grid-template-columns: repeat(6, 1fr);
-    padding: 0 12px;
+    gap: 16px;
   }
 
+  /* Op mobile worden alle kolommen standaard full-width */
   .col-1,
   .col-2,
   .col-3,
@@ -131,8 +123,99 @@ body {
   .col-10,
   .col-11,
   .col-12 {
+    grid-column: span 4;
+  }
+}
+
+/* Tablet en Desktop (min-width: 768px) */
+@media (min-width: 768px) {
+  .grid-12 {
+    grid-template-columns: repeat(12, 1fr);
+    max-width: 100%;
+    padding: 0 16px;
+    gap: 16px;
+  }
+
+  /* Tablet en Desktop col classes werken normaal */
+  .grid-12 .col-1 {
+    grid-column: span 1;
+  }
+  .grid-12 .col-2 {
+    grid-column: span 2;
+  }
+  .grid-12 .col-3 {
+    grid-column: span 3;
+  }
+  .grid-12 .col-4 {
+    grid-column: span 4;
+  }
+  .grid-12 .col-5 {
+    grid-column: span 5;
+  }
+  .grid-12 .col-6 {
     grid-column: span 6;
   }
+  .grid-12 .col-7 {
+    grid-column: span 7;
+  }
+  .grid-12 .col-8 {
+    grid-column: span 8;
+  }
+  .grid-12 .col-9 {
+    grid-column: span 9;
+  }
+  .grid-12 .col-10 {
+    grid-column: span 10;
+  }
+  .grid-12 .col-11 {
+    grid-column: span 11;
+  }
+  .grid-12 .col-12 {
+    grid-column: span 12;
+  }
+}
+
+/* Desktop (min-width: 1025px) - Met max-width container */
+@media (min-width: 1025px) {
+  .grid-12 {
+    grid-template-columns: repeat(12, var(--grid-column-width));
+    max-width: var(--container-max-width);
+    padding: 0 20px;
+  }
+}
+
+/* Mobile specifieke kolom overrides - alleen op mobile */
+@media (max-width: 767px) {
+  .col-mobile-1 {
+    grid-column: span 1;
+  }
+  .col-mobile-2 {
+    grid-column: span 2;
+  }
+  .col-mobile-3 {
+    grid-column: span 3;
+  }
+  .col-mobile-4 {
+    grid-column: span 4;
+  }
+}
+
+/* Kleine mobile (max-width: 480px) */
+@media (max-width: 480px) {
+  .grid-12 {
+    padding: 0 12px;
+    gap: 12px;
+  }
+}
+
+/* Scrollbar hide voor mobile scrollable elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Custom animations */
@@ -155,4 +238,33 @@ body {
   to {
     opacity: 1;
   }
+}
+
+/* Fade-in scroll animaties */
+.fade-in-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-scroll.fade-in-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Varianten met verschillende delays */
+.fade-in-delay-100 {
+  transition-delay: 0.1s;
+}
+
+.fade-in-delay-200 {
+  transition-delay: 0.2s;
+}
+
+.fade-in-delay-300 {
+  transition-delay: 0.3s;
+}
+
+.fade-in-delay-400 {
+  transition-delay: 0.4s;
 }

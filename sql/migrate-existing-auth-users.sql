@@ -24,3 +24,5 @@ WHERE NOT EXISTS (
 -- ============================================
 -- Alle bestaande auth users zijn nu gemigreerd naar de users tabel
 
+
+

@@ -49,3 +49,5 @@ CREATE POLICY "Service role can insert users" ON users
 -- Nu wordt er automatisch een users record aangemaakt
 -- wanneer iemand zich registreert!
 
+
+

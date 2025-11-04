@@ -80,6 +80,14 @@ body {
   grid-column: span 12;
 }
 
+/* Kolom start posities */
+.col-start-2 {
+  grid-column-start: 2;
+}
+.col-start-3 {
+  grid-column-start: 3;
+}
+
 /* Navbar stabiliteit */
 .navbar-link {
   font-weight: 500 !important;
@@ -124,5 +132,27 @@ body {
   .col-11,
   .col-12 {
     grid-column: span 6;
+  }
+}
+
+/* Custom animations */
+@keyframes scale {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

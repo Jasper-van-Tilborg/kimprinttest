@@ -12,6 +12,7 @@ export default function AdminHeader({ userEmail, onSignOut }: AdminHeaderProps) 
     { href: "/admin/products", label: "Producten" },
     { href: "/admin/orders", label: "Bestellingen" },
     { href: "/admin/users", label: "Gebruikers" },
+    { href: "/admin/categories", label: "Categorieën" },
     { href: "/admin/settings", label: "Instellingen" },
   ];
 

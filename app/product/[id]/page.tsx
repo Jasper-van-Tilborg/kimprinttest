@@ -4,12 +4,40 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import { useState } from "react";
+import { useState, use } from "react";
+import { useCart } from "../../../contexts/CartContext";
 
-export default function ProductDetail({ params }: { params: { id: string } }) {
+export default function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const { addItem, openCart } = useCart();
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedColor, setSelectedColor] = useState('black');
   const [selectedSize, setSelectedSize] = useState('M');
+  const [quantity, setQuantity] = useState(1);
+  const [addedToCart, setAddedToCart] = useState(false);
+
+  // Demo product data - in productie zou dit van de API komen
+  const product = {
+    id: resolvedParams.id,
+    name: 'Halloween T-shirt',
+    price: 81.99,
+    image_url: undefined,
+  };
+
+  const handleAddToCart = () => {
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image_url: product.image_url,
+      color: selectedColor,
+      size: selectedSize,
+      quantity: quantity,
+    });
+    
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+  };
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       {/* Header */}
@@ -151,13 +179,60 @@ export default function ProductDetail({ params }: { params: { id: string } }) {
           </div>
 
           <div className="col-6 mt-8 flex flex-col">
-            <div className="bg-white p-6 rounded-lg mb-8">
-              <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold text-gray-900">€ 81,99</span>
-                <button className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
-                  In winkelwagen →
+            <div className="bg-white p-6 rounded-lg mb-8 space-y-4">
+              {/* Quantity Selector */}
+              <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+                <span className="text-gray-700 font-medium">Aantal</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-black transition-colors"
+                  >
+                    −
+                  </button>
+                  <span className="w-12 text-center font-bold text-lg">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-black transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Price & Add to Cart */}
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-3xl font-bold text-gray-900">€ {(product.price * quantity).toFixed(2)}</span>
+                <button 
+                  onClick={handleAddToCart}
+                  className={`px-6 py-3 rounded-lg transition-all duration-200 flex items-center gap-2 font-medium ${
+                    addedToCart
+                      ? 'bg-green-500 text-white'
+                      : 'bg-black text-white hover:bg-gray-800 hover:shadow-lg'
+                  }`}
+                >
+                  {addedToCart ? (
+                    <>
+                      <span>✓</span>
+                      Toegevoegd!
+                    </>
+                  ) : (
+                    <>
+                      In winkelwagen →
+                    </>
+                  )}
                 </button>
               </div>
+
+              {/* View Cart Link */}
+              {addedToCart && (
+                <button
+                  onClick={openCart}
+                  className="w-full text-[#8B4513] hover:underline text-sm font-medium animate-[fadeIn_0.3s_ease-in-out]"
+                >
+                  Bekijk winkelwagen
+                </button>
+              )}
             </div>
 
             {/* Andere Must-Haves */}

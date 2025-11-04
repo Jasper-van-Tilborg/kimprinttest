@@ -40,10 +40,10 @@ export default function Assortiment() {
               { name: 'Tassen', href: '/assortiment/tassen' },
               { name: 'Rompers', href: '/assortiment/rompers' }
             ].map((category) => (
-              <Link key={category.name} href={category.href} className="text-center" style={{ width: '340px' }}>
-                <div className="bg-gray-200 rounded-lg mb-4 flex items-center justify-center relative" style={{ width: '340px', height: '425px' }}>
+              <Link key={category.name} href={category.href} className="text-center group" style={{ width: '340px' }}>
+                <div className="bg-gray-200 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden transition-all duration-300" style={{ width: '340px', height: '425px' }}>
                   <span className="text-gray-500">Category Image</span>
-                  <button className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-transparent text-black border border-black rounded-lg hover:bg-gray-50 transition-colors">
+                  <button className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 bg-transparent text-black border-2 border-black rounded-lg transition-all duration-300 group-hover:bg-black group-hover:text-white font-medium">
                     {category.name}
                   </button>
                 </div>

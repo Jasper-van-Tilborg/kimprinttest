@@ -268,3 +268,12 @@ body {
 .fade-in-delay-400 {
   transition-delay: 0.4s;
 }
+
+/* Grid voor product customizer */
+.grid-cols-20 {
+  grid-template-columns: repeat(20, 1fr);
+}
+
+.grid-rows-20 {
+  grid-template-rows: repeat(20, 1fr);
+}

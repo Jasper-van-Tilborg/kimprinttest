@@ -114,7 +114,6 @@ export default function Fotoboek() {
             return (
               <FadeInScroll 
                 key={category.title}
-                delay={index * 50}
                 className={`mb-8 md:mb-20 last:mb-0 flex flex-col ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} gap-4 md:gap-8 items-center group`}
               >
                 {/* Mobile: Simplified Card Layout */}

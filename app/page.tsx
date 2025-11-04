@@ -148,7 +148,6 @@ export default function Home() {
                   key={`${activeCategory}-${index}`}
                   threshold={0.1}
                   rootMargin="0px 0px -50px 0px"
-                  delay={index * 50}
                 >
                   <Link href="/assortiment" className="block">
                     <div className="bg-gray-200 rounded-lg mb-2 flex items-center justify-center w-full h-[180px]">
@@ -180,7 +179,6 @@ export default function Home() {
                   key={`${activeCategory}-${index}`}
                   threshold={0.1}
                   rootMargin="0px 0px -50px 0px"
-                  delay={index * 50}
                   className="col-3"
                 >
                   <div className="bg-gray-200 rounded-lg mb-4 flex items-center justify-center w-full h-[395px]">

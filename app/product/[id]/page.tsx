@@ -357,7 +357,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
             {/* Mobile: Andere Must-Haves */}
             <div className="mt-6">
               <h2 className="text-lg font-bold text-gray-900 mb-3">Andere Must-Haves</h2>
-              <FadeInScroll delay={0} className="group">
+              <FadeInScroll className="group">
                 <Link href="/product/demo-tshirt" className="block">
                   <div className="bg-gray-200 rounded-lg mb-3 overflow-hidden group-active:scale-[0.98] transition-transform" style={{ height: '180px' }}>
                     <div className="w-full h-full flex items-center justify-center">
@@ -437,7 +437,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Andere Must-Haves</h2>
                 <div className="grid grid-cols-3 gap-4">
                 {[1, 2, 3].map((item, index) => (
-                  <FadeInScroll key={item} delay={index * 50} className="group">
+                  <FadeInScroll key={item} className="group">
                     <Link href="/product/demo-tshirt" className="block">
                       <div className="bg-gray-200 rounded-lg mb-3 overflow-hidden group-hover:shadow-lg transition-shadow duration-300" style={{ height: '200px' }}>
                         <div className="w-full h-full flex items-center justify-center">

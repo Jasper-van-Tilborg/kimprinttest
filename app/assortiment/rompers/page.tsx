@@ -370,7 +370,6 @@ export default function RompersPage() {
                 {products.map((product, index) => (
                   <FadeInScroll 
                     key={product.id}
-                    delay={index * 50}
                     className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
                   >
                     <Link href={`/product/${product.id}`}>
@@ -446,7 +445,6 @@ export default function RompersPage() {
               {products.map((product, index) => (
                 <FadeInScroll 
                   key={product.id}
-                  delay={index * 50}
                   className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
                 >
                   <Link href={`/product/${product.id}`}>

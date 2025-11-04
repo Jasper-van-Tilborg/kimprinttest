@@ -46,18 +46,18 @@ export default function Assortiment() {
             <h2 className="font-bold text-gray-900 underline mb-4 md:mb-8 text-lg md:text-[26px]">Shop onze Collecties</h2>
           </div>
           
-          {/* Mobile: Show 2 categories in a row, scrollable */}
+          {/* Mobile: Show 2 categories per row */}
           <div className="md:hidden col-12">
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide pl-4 pr-4">
+            <div className="grid grid-cols-2 gap-3">
               {[
                 { name: 'T-shirts', href: '/assortiment/t-shirts' },
                 { name: 'Hoodies', href: '/assortiment/hoodies' },
                 { name: 'Tassen', href: '/assortiment/tassen' },
                 { name: 'Rompers', href: '/assortiment/rompers' }
               ].map((category, index) => (
-                <FadeInScroll key={category.name} delay={index * 50} className="shrink-0">
+                <FadeInScroll key={category.name}>
                   <Link href={category.href} className="block">
-                    <div className="bg-gray-200 rounded-lg mb-3 flex items-center justify-center relative overflow-hidden w-[280px] h-[280px]">
+                    <div className="bg-gray-200 rounded-lg mb-3 flex items-center justify-center relative overflow-hidden w-full h-[280px]">
                       <span className="text-gray-500 text-xs">Category</span>
                       <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-black text-white rounded-lg font-medium text-sm">
                         {category.name}
@@ -66,8 +66,6 @@ export default function Assortiment() {
                   </Link>
                 </FadeInScroll>
               ))}
-              {/* Spacer to prevent black space at the end */}
-              <div className="shrink-0 w-4"></div>
             </div>
           </div>
 
@@ -79,7 +77,7 @@ export default function Assortiment() {
               { name: 'Tassen', href: '/assortiment/tassen' },
               { name: 'Rompers', href: '/assortiment/rompers' }
             ].map((category, index) => (
-              <FadeInScroll key={category.name} delay={index * 50} className="text-center group flex-1">
+              <FadeInScroll key={category.name} className="text-center group flex-1">
                 <Link href={category.href}>
                   <div className="bg-gray-200 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden transition-all duration-300 w-full h-[425px] group-hover:shadow-lg">
                     <span className="text-gray-500">Category Image</span>
@@ -105,7 +103,7 @@ export default function Assortiment() {
           <div className="md:hidden col-12">
             <div className="grid grid-cols-2 gap-3">
               {[1, 2, 3, 4].map((item, index) => (
-                <FadeInScroll key={item} delay={index * 50}>
+                <FadeInScroll key={item}>
                   <Link href="/product/demo-tshirt" className="block">
                     <div className="bg-gray-200 rounded-lg mb-2 flex items-center justify-center w-full h-[180px]">
                       <span className="text-gray-500 text-xs">Product</span>
@@ -131,7 +129,7 @@ export default function Assortiment() {
           {/* Desktop: Show 8 products in 2 rows, 4 per row */}
           <div className="hidden md:grid col-12 grid-cols-4 gap-5">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((item, index) => (
-              <FadeInScroll key={item} delay={index * 50} className="text-center">
+              <FadeInScroll key={item} className="text-center">
                 <Link href="/product/demo-tshirt">
                   <div className="bg-gray-200 rounded-lg mb-4 flex items-center justify-center w-full h-[395px]">
                     <span className="text-gray-500">Product Image</span>

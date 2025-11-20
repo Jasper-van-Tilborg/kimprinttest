@@ -39,15 +39,16 @@ export default function Home() {
         <div className="relative h-[450px] md:h-[80vh] overflow-hidden">
           <div className="absolute inset-0 scale-100">
             <Image
-              src="/images/hero/heroimage.png"
+              src="/images/hero/assortimentheroimage.jpg"
               alt="K-imprint hero"
               fill
               className="object-cover"
-              style={{ objectPosition: 'center 25%' }}
+              style={{ objectPosition: 'center 0%' }}
               priority
               sizes="100vw"
             />
           </div>
+          <div className="absolute inset-0 bg-black/20"></div>
         </div>
       </section>
 

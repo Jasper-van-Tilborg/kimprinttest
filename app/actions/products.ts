@@ -75,6 +75,7 @@ async function deleteImages(urls: string[]): Promise<void> {
 
 export type ColorVariant = {
   name: string;
+  colorCode: string;
   images: string[];
 };
 

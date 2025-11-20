@@ -16,11 +16,11 @@ export default function Assortiment() {
         <div className="relative h-[450px] md:h-[80vh] overflow-hidden">
           <div className="absolute inset-0 scale-100">
             <Image
-              src="/images/hero/assortimentheroimage.jpg"
+              src="/images/hero/heroimage.png"
               alt="K-imprint assortiment"
               fill
               className="object-cover"
-              style={{ objectPosition: 'center 0%' }}
+              style={{ objectPosition: 'center 25%' }}
               priority
               sizes="100vw"
             />

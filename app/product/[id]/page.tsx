@@ -5,19 +5,146 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import { useState, use } from "react";
+import { useState, use, useEffect } from "react";
 import { useCart } from "../../../contexts/CartContext";
+import { supabase } from "../../../lib/supabase";
+import type { Product, ColorVariant } from "../../../lib/supabase";
 
 export default function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
   const { addItem, openCart } = useCart();
   const [isFavorite, setIsFavorite] = useState(false);
-  const [selectedColor, setSelectedColor] = useState('black');
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState('M');
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
-  
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedColorImages, setSelectedColorImages] = useState<string[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .eq("id", resolvedParams.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching product:", error);
+          router.push("/assortiment");
+          return;
+        }
+
+        if (data) {
+          setProduct(data);
+          
+          // Set eerste kleur als default als er kleuren zijn
+          if (data.colors && data.colors.length > 0) {
+            setSelectedColor(data.colors[0].name);
+            setSelectedColorImages(data.colors[0].images || []);
+          } else {
+            // Fallback voor oude producten zonder kleuren (backward compatibility)
+            if (data.images && data.images.length > 0) {
+              setSelectedColorImages(data.images);
+            } else if (data.image_url) {
+              setSelectedColorImages([data.image_url]);
+            }
+          }
+
+          // Haal gerelateerde producten op (zelfde categorie, exclusief huidige product)
+          if (data.category) {
+            const { data: related, error: relatedError } = await supabase
+              .from("products")
+              .select("*")
+              .eq("category", data.category)
+              .neq("id", data.id)
+              .limit(3)
+              .order("sales_count", { ascending: false });
+
+            if (!relatedError && related) {
+              setRelatedProducts(related);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error:", err);
+        router.push("/assortiment");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProduct();
+  }, [resolvedParams.id, router]);
+
+  // Update images when color changes
+  useEffect(() => {
+    if (!product) return;
+
+    if (product.colors && product.colors.length > 0 && selectedColor) {
+      // Zoek de geselecteerde kleur variant
+      const colorVariant = product.colors.find((c: ColorVariant) => c.name === selectedColor);
+      
+      if (colorVariant && colorVariant.images && Array.isArray(colorVariant.images) && colorVariant.images.length > 0) {
+        // Gebruik de images van de geselecteerde kleur
+        setSelectedColorImages(colorVariant.images);
+        setCurrentImageIndex(0);
+      } else {
+        // Geen images voor deze kleur
+        setSelectedColorImages([]);
+        setCurrentImageIndex(0);
+      }
+    } else if (product.colors && product.colors.length > 0) {
+      // Geen kleur geselecteerd, gebruik eerste kleur
+      const firstColor = product.colors[0];
+      if (firstColor && firstColor.images && Array.isArray(firstColor.images) && firstColor.images.length > 0) {
+        setSelectedColorImages(firstColor.images);
+        setCurrentImageIndex(0);
+      } else {
+        setSelectedColorImages([]);
+        setCurrentImageIndex(0);
+      }
+    } else {
+      // Geen kleuren gedefinieerd (oude producten zonder kleuren)
+      // Fallback voor backward compatibility
+      if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+        setSelectedColorImages(product.images);
+      } else if (product.image_url) {
+        setSelectedColorImages([product.image_url]);
+      } else {
+        setSelectedColorImages([]);
+      }
+      setCurrentImageIndex(0);
+    }
+  }, [selectedColor, product]);
+
+  // Handle ESC key to close lightbox
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isLightboxOpen) {
+        setIsLightboxOpen(false);
+      }
+    };
+
+    if (isLightboxOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isLightboxOpen]);
 
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -27,21 +154,27 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     }
   };
 
-  // Demo product data - in productie zou dit van de API komen
-  const product = {
-    id: resolvedParams.id,
-    name: 'Halloween T-shirt',
-    price: 81.99,
-    image_url: undefined,
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+        <div className="text-xl">Laden...</div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return null;
+  }
 
   const handleAddToCart = () => {
+    if (!product) return;
+    
     addItem({
       id: product.id,
       name: product.name,
       price: product.price,
-      image_url: product.image_url,
-      color: selectedColor,
+      image_url: selectedColorImages[0] || product.image_url || undefined,
+      color: selectedColor || undefined,
       size: selectedSize,
       quantity: quantity,
     });
@@ -49,6 +182,21 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
+
+  // Get available colors from product
+  const availableColors = product.colors && product.colors.length > 0 
+    ? product.colors 
+    : [];
+
+  // Get all images (from selected color or general images)
+  const displayImages = selectedColorImages.length > 0 
+    ? selectedColorImages 
+    : (product.images && product.images.length > 0 
+        ? product.images 
+        : (product.image_url ? [product.image_url] : []));
+
+  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       {/* Header */}
@@ -71,53 +219,124 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
 
       {/* Main Product Section */}
       <section className="pt-4 md:pt-8 pb-8 md:pb-16">
-        <div className="grid-12">
+        <div className="grid-12 md:items-stretch">
           {/* Mobile: Single Image */}
           <div className="md:hidden col-12 mb-4">
-            <div className="bg-gray-200 rounded-lg flex items-center justify-center relative" style={{ height: '300px' }}>
-              <span className="text-gray-500 text-sm">Main Product Image</span>
-              
-              {/* Carousel Indicators */}
-              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                <button className="w-1.5 h-1.5 rounded-full border border-black"></button>
-                <button className="w-1.5 h-1.5 rounded-full bg-black"></button>
-                <button className="w-1.5 h-1.5 rounded-full border border-black"></button>
+            {displayImages.length > 0 ? (
+              <div 
+                className="relative rounded-lg overflow-hidden cursor-pointer" 
+                style={{ height: '300px' }}
+                onClick={() => setIsLightboxOpen(true)}
+              >
+                <Image
+                  src={displayImages[currentImageIndex]}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                />
+                {displayImages.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                    {displayImages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`w-1.5 h-1.5 rounded-full transition-all ${
+                          currentImageIndex === index ? 'bg-black' : 'bg-white border border-black'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="bg-gray-200 rounded-lg flex items-center justify-center relative" style={{ height: '300px' }}>
+                <span className="text-gray-500 text-sm">Geen afbeelding beschikbaar</span>
+              </div>
+            )}
           </div>
 
           {/* Desktop: Top Row - Images */}
           <div className="hidden md:block col-6">
             {/* Main Image with Carousel */}
-            <div className="bg-gray-200 rounded-lg flex items-center justify-center relative" style={{ height: '550px' }}>
-              <span className="text-gray-500 text-lg">Main Product Image</span>
-              
-              {/* Carousel Indicators */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                <button className="w-2 h-2 rounded-full border border-black"></button>
-                <button className="w-2 h-2 rounded-full bg-black"></button>
-                <button className="w-2 h-2 rounded-full border border-black"></button>
+            {displayImages.length > 0 ? (
+              <div 
+                className="relative rounded-lg overflow-hidden cursor-pointer" 
+                style={{ height: '550px' }}
+                onClick={() => setIsLightboxOpen(true)}
+              >
+                <Image
+                  src={displayImages[currentImageIndex]}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                />
+                {displayImages.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                    {displayImages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          currentImageIndex === index ? 'bg-black' : 'bg-white border border-black'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="bg-gray-200 rounded-lg flex items-center justify-center relative" style={{ height: '550px' }}>
+                <span className="text-gray-500 text-lg">Geen afbeelding beschikbaar</span>
+              </div>
+            )}
           </div>
           
           <div className="hidden md:block col-6">
-            {/* 3 images - 2 boven, 1 onder */}
-            <div className="flex flex-col gap-4" style={{ height: '550px' }}>
-              {/* Top 2 cards horizontaal */}
-              <div className="grid grid-cols-2 gap-4 flex-1">
-                <div className="bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">Image 2</span>
+            {/* Thumbnail images - 2 boven, 1 onder */}
+            {displayImages.length > 1 ? (
+              <div className="flex flex-col gap-4" style={{ height: '550px' }}>
+                {/* Top 2 images side by side */}
+                <div className="grid grid-cols-2 gap-4 flex-1">
+                  {displayImages.slice(1, 3).map((image, index) => (
+                    <div key={index} className="relative rounded-lg overflow-hidden">
+                      <Image
+                        src={image}
+                        alt={`${product.name} ${index + 2}`}
+                        fill
+                        className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setCurrentImageIndex(index + 1)}
+                      />
+                    </div>
+                  ))}
+                  {displayImages.length === 1 && (
+                    <div className="bg-gray-200 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Geen afbeelding</span>
+                    </div>
+                  )}
                 </div>
-                <div className="bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">Image 3</span>
-                </div>
+                {/* Bottom 1 wider image */}
+                {displayImages.length > 3 && (
+                  <div className="relative rounded-lg overflow-hidden flex-1">
+                    <Image
+                      src={displayImages[3]}
+                      alt={`${product.name} 4`}
+                      fill
+                      className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => setCurrentImageIndex(3)}
+                    />
+                  </div>
+                )}
+                {displayImages.length <= 3 && displayImages.length > 1 && (
+                  <div className="bg-gray-200 rounded-lg flex items-center justify-center flex-1">
+                    <span className="text-gray-500 text-sm">Geen extra afbeelding</span>
+                  </div>
+                )}
               </div>
-              {/* Bottom 1 bredere card */}
-              <div className="bg-gray-200 rounded-lg flex items-center justify-center flex-1">
-                <span className="text-gray-500 text-sm">Image 4</span>
+            ) : (
+              <div className="bg-gray-200 rounded-lg flex items-center justify-center" style={{ height: '550px' }}>
+                <span className="text-gray-500 text-sm">Geen extra afbeeldingen</span>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Bottom Row - Product Info & Purchase */}
@@ -125,7 +344,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
           <div className="md:hidden col-12 mt-4">
             <div className="bg-white p-4 rounded-lg">
               <div className="flex justify-between items-start mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">Halloween T-shirt</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
                 <button 
                   onClick={() => setIsFavorite(!isFavorite)}
                   className={`w-10 h-10 flex items-center justify-center rounded-full border-2 transition-all duration-300 shrink-0 ${
@@ -153,35 +372,32 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               </div>
               
               {/* Color Selection */}
-              <div className="mb-4">
-                <h3 className="text-base font-semibold text-gray-900 mb-2">Kleur</h3>
-                <div className="flex space-x-3">
-                  <button 
-                    onClick={() => setSelectedColor('black')}
-                    className={`w-8 h-8 bg-black rounded-full border-2 transition-all ${
-                      selectedColor === 'black' ? 'border-black ring-2 ring-offset-2 ring-black' : 'border-gray-300'
-                    }`}
-                  ></button>
-                  <button 
-                    onClick={() => setSelectedColor('white')}
-                    className={`w-8 h-8 bg-white rounded-full border-2 transition-all ${
-                      selectedColor === 'white' ? 'border-gray-400 ring-2 ring-offset-2 ring-gray-400' : 'border-gray-300'
-                    }`}
-                  ></button>
-                  <button 
-                    onClick={() => setSelectedColor('green')}
-                    className={`w-8 h-8 bg-green-400 rounded-full border-2 transition-all ${
-                      selectedColor === 'green' ? 'border-green-400 ring-2 ring-offset-2 ring-green-400' : 'border-gray-300'
-                    }`}
-                  ></button>
+              {availableColors.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Kleur</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {availableColors.map((color: ColorVariant) => (
+                      <button
+                        key={color.name}
+                        onClick={() => setSelectedColor(color.name)}
+                        className={`w-8 h-8 rounded-full border-2 transition-all ${
+                          selectedColor === color.name
+                            ? 'ring-2 ring-offset-2 ring-gray-400 border-gray-400'
+                            : 'border-gray-300'
+                        }`}
+                        style={{ backgroundColor: color.colorCode || '#000000' }}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               
               {/* Size Selection */}
               <div className="mb-4">
                 <h3 className="text-base font-semibold text-gray-900 mb-2">Maat</h3>
                 <div className="grid grid-cols-5 gap-2">
-                  {['XS', 'S', 'M', 'L', 'XL'].map((size) => (
+                  {sizes.map((size) => (
                     <button 
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -198,20 +414,22 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               </div>
               
               {/* Description */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">Omschrijving</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
-                </p>
-              </div>
+              {product.description && (
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Omschrijving</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {product.description}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Desktop: Product Info */}
           <div className="hidden md:block col-6 mt-8">
-            <div className="bg-white p-6 rounded-lg">
+            <div className="bg-white p-6 rounded-lg h-full">
               <div className="flex justify-between items-start mb-6">
-                <h1 className="text-4xl font-bold text-gray-900">Halloween T-shirt</h1>
+                <h1 className="text-4xl font-bold text-gray-900">{product.name}</h1>
                 <button 
                   onClick={() => setIsFavorite(!isFavorite)}
                   className={`w-12 h-12 flex items-center justify-center rounded-full border-2 transition-all duration-300 shrink-0 ${
@@ -239,35 +457,32 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               </div>
               
               {/* Color Selection */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Kleur</h3>
-                <div className="flex space-x-3">
-                  <button 
-                    onClick={() => setSelectedColor('black')}
-                    className={`w-10 h-10 bg-black rounded-full border-2 transition-all ${
-                      selectedColor === 'black' ? 'border-black ring-2 ring-offset-2 ring-black' : 'border-gray-300'
-                    }`}
-                  ></button>
-                  <button 
-                    onClick={() => setSelectedColor('white')}
-                    className={`w-10 h-10 bg-white rounded-full border-2 transition-all ${
-                      selectedColor === 'white' ? 'border-gray-400 ring-2 ring-offset-2 ring-gray-400' : 'border-gray-300'
-                    }`}
-                  ></button>
-                  <button 
-                    onClick={() => setSelectedColor('green')}
-                    className={`w-10 h-10 bg-green-400 rounded-full border-2 transition-all ${
-                      selectedColor === 'green' ? 'border-green-400 ring-2 ring-offset-2 ring-green-400' : 'border-gray-300'
-                    }`}
-                  ></button>
+              {availableColors.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Kleur</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {availableColors.map((color: ColorVariant) => (
+                      <button
+                        key={color.name}
+                        onClick={() => setSelectedColor(color.name)}
+                        className={`w-10 h-10 rounded-full border-2 transition-all ${
+                          selectedColor === color.name
+                            ? 'ring-2 ring-offset-2 ring-gray-400 border-gray-400'
+                            : 'border-gray-300'
+                        }`}
+                        style={{ backgroundColor: color.colorCode || '#000000' }}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               
               {/* Size Selection */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Maat</h3>
                 <div className="grid grid-cols-5 gap-2">
-                  {['XS', 'S', 'M', 'L', 'XL'].map((size) => (
+                  {sizes.map((size) => (
                     <button 
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -284,12 +499,14 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               </div>
               
               {/* Description */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Omschrijving</h3>
-                <p className="text-gray-600 text-base leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
-                </p>
-              </div>
+              {product.description && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Omschrijving</h3>
+                  <p className="text-gray-600 text-base leading-relaxed">
+                    {product.description}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -302,14 +519,14 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-black transition-colors text-lg"
+                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-gray-50 transition-colors text-lg text-black"
                   >
                     −
                   </button>
-                  <span className="w-10 md:w-12 text-center font-bold text-base md:text-lg">{quantity}</span>
+                  <span className="w-10 md:w-12 text-center font-bold text-base md:text-lg text-black">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-black transition-colors text-lg"
+                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-gray-50 transition-colors text-lg text-black"
                   >
                     +
                   </button>
@@ -352,110 +569,249 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
             </div>
 
             {/* Mobile: Andere Must-Haves */}
-            <div className="mt-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">Andere Must-Haves</h2>
-              <div className="group">
-                <Link href="/product/demo-tshirt" className="block">
-                  <div className="bg-gray-200 rounded-lg mb-3 overflow-hidden group-active:scale-[0.98] transition-transform" style={{ height: '180px' }}>
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-gray-500 text-xs">Product</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900 text-xs group-active:text-[#8B4513] transition-colors">Demo T-shirt</h3>
-                    <p className="text-gray-600 text-xs font-medium">€60</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop: Purchase Section */}
-          <div className="hidden md:block col-6 mt-8">
-            <div className="flex flex-col">
-              <div className="bg-white p-6 rounded-lg mb-8 space-y-4">
-              {/* Quantity Selector */}
-              <div className="flex items-center justify-between pb-4 border-b border-gray-200">
-                <span className="text-gray-700 font-medium text-base">Aantal</span>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-black transition-colors text-lg"
-                  >
-                    −
-                  </button>
-                  <span className="w-12 text-center font-bold text-lg">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-black transition-colors text-lg"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* Price & Add to Cart */}
-              <div className="flex flex-row items-center justify-between gap-0 pt-2">
-                <span className="text-3xl font-bold text-gray-900">€ {(product.price * quantity).toFixed(2)}</span>
-                <button 
-                  onClick={handleAddToCart}
-                  className={`w-auto px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-base ${
-                    addedToCart
-                      ? 'bg-green-500 text-white'
-                      : 'bg-black text-white hover:bg-gray-800 hover:shadow-lg active:scale-[0.98]'
-                  }`}
-                >
-                  {addedToCart ? (
-                    <>
-                      <span>✓</span>
-                      Toegevoegd!
-                    </>
-                  ) : (
-                    <>
-                      In winkelwagen →
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* View Cart Link */}
-              {addedToCart && (
-                <button
-                  onClick={openCart}
-                  className="w-full text-[#8B4513] hover:underline text-sm font-medium animate-[fadeIn_0.3s_ease-in-out]"
-                >
-                  Bekijk winkelwagen
-                </button>
-              )}
-              </div>
-
-              {/* Desktop: Andere Must-Haves */}
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Andere Must-Haves</h2>
-                <div className="grid grid-cols-3 gap-4">
-                {[1, 2, 3].map((item, index) => (
-                  <div key={item} className="group">
-                    <Link href="/product/demo-tshirt" className="block">
-                      <div className="bg-gray-200 rounded-lg mb-3 overflow-hidden group-hover:shadow-lg transition-shadow duration-300" style={{ height: '200px' }}>
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-gray-500 text-sm">Product</span>
-                        </div>
+            {relatedProducts.length > 0 && (
+              <div className="mt-6">
+                <h2 className="text-lg font-bold text-gray-900 mb-3">Andere Must-Haves</h2>
+                {relatedProducts.map((relatedProduct) => (
+                  <div key={relatedProduct.id} className="group mb-4">
+                    <Link href={`/product/${relatedProduct.id}`} className="block">
+                      <div className="bg-white rounded-lg mb-3 overflow-hidden group-active:scale-[0.98] transition-transform flex items-center justify-center p-4" style={{ height: '180px' }}>
+                        {relatedProduct.image_url ? (
+                          <div className="relative w-full h-full">
+                            <Image
+                              src={relatedProduct.image_url}
+                              alt={relatedProduct.name}
+                              width={200}
+                              height={180}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-gray-500 text-xs">Geen afbeelding</span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-gray-900 text-sm group-hover:text-[#8B4513] transition-colors">Demo T-shirt</h3>
-                        <p className="text-gray-600 text-sm font-medium">€60</p>
+                        <h3 className="font-medium text-gray-900 text-xs group-active:text-[#8B4513] transition-colors truncate flex-1 mr-2">
+                          {relatedProduct.name}
+                        </h3>
+                        <p className="text-gray-600 text-xs font-medium shrink-0">€{relatedProduct.price.toFixed(2)}</p>
                       </div>
                     </Link>
                   </div>
                 ))}
-                </div>
               </div>
+            )}
+          </div>
+
+          {/* Desktop: Purchase Section */}
+          <div className="hidden md:block col-6 mt-8">
+            <div className="flex flex-col h-full">
+              {/* Price & Add to Cart */}
+              <div className="bg-white p-6 rounded-lg mb-4">
+                <div className="flex flex-row items-center justify-between gap-0">
+                  <span className="text-3xl font-bold text-gray-900">€ {(product.price * quantity).toFixed(2)}</span>
+                  <button 
+                    onClick={handleAddToCart}
+                    className={`w-auto px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-base ${
+                      addedToCart
+                        ? 'bg-green-500 text-white'
+                        : 'bg-black text-white hover:bg-gray-800 hover:shadow-lg active:scale-[0.98]'
+                    }`}
+                  >
+                    {addedToCart ? (
+                      <>
+                        <span>✓</span>
+                        Toegevoegd!
+                      </>
+                    ) : (
+                      <>
+                        In winkelwagen →
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* View Cart Link */}
+                {addedToCart && (
+                  <button
+                    onClick={openCart}
+                    className="w-full text-[#8B4513] hover:underline text-sm font-medium animate-[fadeIn_0.3s_ease-in-out] mt-3"
+                  >
+                    Bekijk winkelwagen
+                  </button>
+                )}
+              </div>
+
+              {/* Desktop: Andere Must-Haves */}
+              {relatedProducts.length > 0 && (
+                <div className="flex flex-col flex-grow mt-auto">
+                  <h2 className="text-xl font-bold text-gray-900 mb-3">Andere Must-Haves</h2>
+                  <div className="grid grid-cols-3 gap-4 flex-grow items-stretch">
+                    {relatedProducts.map((relatedProduct) => (
+                      <div key={relatedProduct.id} className="group flex flex-col">
+                        <Link href={`/product/${relatedProduct.id}`} className="block flex flex-col flex-grow h-full">
+                          <div className="bg-white p-4 rounded-lg overflow-hidden group-hover:shadow-lg transition-shadow duration-300 flex-grow flex items-center justify-center" style={{ minHeight: '200px' }}>
+                            {relatedProduct.image_url ? (
+                              <div className="relative w-full h-full">
+                                <Image
+                                  src={relatedProduct.image_url}
+                                  alt={relatedProduct.name}
+                                  width={200}
+                                  height={200}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="text-gray-500 text-sm">Geen afbeelding</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between mt-3">
+                            <h3 className="font-medium text-gray-900 text-sm group-hover:text-[#8B4513] transition-colors truncate flex-1 mr-2">
+                              {relatedProduct.name}
+                            </h3>
+                            <p className="text-gray-600 text-sm font-medium shrink-0">€{relatedProduct.price.toFixed(2)}</p>
+                          </div>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       <Footer />
+
+      {/* Lightbox Modal */}
+      {isLightboxOpen && displayImages.length > 0 && (
+        <div 
+          className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          {/* Close Button */}
+          <button
+            onClick={() => setIsLightboxOpen(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+            aria-label="Sluiten"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          {/* Previous Button */}
+          {displayImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentImageIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1));
+              }}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 transition-colors z-10 bg-black bg-opacity-50 rounded-full p-3"
+              aria-label="Vorige afbeelding"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+          )}
+
+          {/* Next Button */}
+          {displayImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentImageIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
+              }}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 transition-colors z-10 bg-black bg-opacity-50 rounded-full p-3"
+              aria-label="Volgende afbeelding"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          )}
+
+          {/* Image Container */}
+          <div 
+            className="relative w-full h-full max-w-7xl max-h-[90vh] flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={displayImages[currentImageIndex]}
+              alt={`${product.name} - Afbeelding ${currentImageIndex + 1}`}
+              width={1200}
+              height={1200}
+              className="max-w-full max-h-full object-contain"
+              priority
+            />
+          </div>
+
+          {/* Image Counter */}
+          {displayImages.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black bg-opacity-50 px-4 py-2 rounded-lg text-sm">
+              {currentImageIndex + 1} / {displayImages.length}
+            </div>
+          )}
+
+          {/* Image Dots */}
+          {displayImages.length > 1 && (
+            <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex space-x-2">
+              {displayImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex(index);
+                  }}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    currentImageIndex === index ? 'bg-white' : 'bg-white bg-opacity-50'
+                  }`}
+                  aria-label={`Ga naar afbeelding ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { supabase } from "../../../../lib/supabase";
 interface ColorVariant {
   id: string;
   name: string;
+  colorCode: string; // Hex kleurcode voor het bolletje
   files: File[];
   previewUrls: string[];
 }
@@ -24,8 +25,6 @@ export default function NewProduct() {
     stock: "",
     image_url: "",
   });
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [colors, setColors] = useState<ColorVariant[]>([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -63,92 +62,29 @@ export default function NewProduct() {
     fetchCategories();
   }, []);
 
-  // Handle paste from clipboard
+  // Voeg automatisch één kleur toe bij mount als er geen kleuren zijn
   useEffect(() => {
-    const handlePaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      const files: File[] = [];
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith("image/")) {
-          const file = items[i].getAsFile();
-          if (file) {
-            files.push(file);
-          }
-        }
-      }
-
-      if (files.length > 0) {
-        // Valideer alle bestanden
-        for (const file of files) {
-          if (file.size > 5 * 1024 * 1024) {
-            setError("Afbeelding is te groot (max 5MB)");
-            return;
-          }
-        }
-
-        // Voeg nieuwe bestanden toe aan bestaande
-        setSelectedFiles((prev) => [...prev, ...files]);
-        setError("");
-
-        // Maak previews voor alle nieuwe bestanden
-        files.forEach((file) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setPreviewUrls((prev) => [...prev, reader.result as string]);
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-    };
-
-    window.addEventListener("paste", handlePaste);
-    return () => window.removeEventListener("paste", handlePaste);
+    if (colors.length === 0) {
+      const newColor: ColorVariant = {
+        id: Date.now().toString(),
+        name: "",
+        colorCode: "#000000", // Standaard zwart
+        files: [],
+        previewUrls: [],
+      };
+      setColors([newColor]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    
-    if (files.length === 0) return;
 
-    // Valideer alle bestanden
-    for (const file of files) {
-      if (!file.type.startsWith("image/")) {
-        setError("Alleen afbeeldingen zijn toegestaan");
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Afbeelding is te groot (max 5MB)");
-        return;
-      }
-    }
-
-    // Voeg nieuwe bestanden toe aan bestaande
-    setSelectedFiles((prev) => [...prev, ...files]);
-    setError("");
-
-    // Maak previews voor alle nieuwe bestanden
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrls((prev) => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
-  };
 
   // Kleuren beheer functies
   const addColor = () => {
     const newColor: ColorVariant = {
       id: Date.now().toString(),
       name: "",
+      colorCode: "#000000", // Standaard zwart
       files: [],
       previewUrls: [],
     };
@@ -159,9 +95,66 @@ export default function NewProduct() {
     setColors((prev) => prev.filter((c) => c.id !== colorId));
   };
 
+  // Kleurcode mapping voor standaard kleuren
+  const getColorCodeFromName = (colorName: string): string => {
+    const normalizedName = colorName.toLowerCase().trim();
+    const colorMap: { [key: string]: string } = {
+      'roze': '#FFC0CB',
+      'pink': '#FFC0CB',
+      'zwart': '#000000',
+      'black': '#000000',
+      'wit': '#FFFFFF',
+      'white': '#FFFFFF',
+      'rood': '#FF0000',
+      'red': '#FF0000',
+      'blauw': '#0000FF',
+      'blue': '#0000FF',
+      'groen': '#008000',
+      'green': '#008000',
+      'geel': '#FFFF00',
+      'yellow': '#FFFF00',
+      'oranje': '#FFA500',
+      'orange': '#FFA500',
+      'paars': '#800080',
+      'purple': '#800080',
+      'grijs': '#808080',
+      'gray': '#808080',
+      'grey': '#808080',
+      'beige': '#F5F5DC',
+      'bruin': '#A52A2A',
+      'brown': '#A52A2A',
+      'navy': '#000080',
+      'turquoise': '#40E0D0',
+      'turkoois': '#40E0D0',
+      'lime': '#00FF00',
+      'limegroen': '#00FF00',
+      'magenta': '#FF00FF',
+      'cyan': '#00FFFF',
+      'zilver': '#C0C0C0',
+      'silver': '#C0C0C0',
+      'goud': '#FFD700',
+      'gold': '#FFD700',
+    };
+    
+    return colorMap[normalizedName] || '#000000';
+  };
+
   const updateColorName = (colorId: string, name: string) => {
     setColors((prev) =>
-      prev.map((c) => (c.id === colorId ? { ...c, name } : c))
+      prev.map((c) => {
+        if (c.id === colorId) {
+          // Auto-detecteer kleurcode op basis van naam
+          const autoColorCode = getColorCodeFromName(name);
+          return { ...c, name, colorCode: autoColorCode };
+        }
+        return c;
+      })
+    );
+  };
+
+  const updateColorCode = (colorId: string, colorCode: string) => {
+    setColors((prev) =>
+      prev.map((c) => (c.id === colorId ? { ...c, colorCode } : c))
     );
   };
 
@@ -274,10 +267,23 @@ export default function NewProduct() {
       return;
     }
 
-    // Valideer kleuren (als er kleuren zijn, moeten ze een naam hebben)
+    // Valideer dat er minstens één kleur is
+    if (colors.length === 0) {
+      setError("Je moet minstens één kleur toevoegen");
+      return;
+    }
+
+    // Valideer dat alle kleuren een naam hebben
     const invalidColors = colors.filter((c) => !c.name.trim());
     if (invalidColors.length > 0) {
       setError("Alle kleuren moeten een naam hebben");
+      return;
+    }
+
+    // Valideer dat alle kleuren minstens één afbeelding hebben
+    const colorsWithoutImages = colors.filter((c) => c.files.length === 0);
+    if (colorsWithoutImages.length > 0) {
+      setError("Alle kleuren moeten minstens één afbeelding hebben");
       return;
     }
 
@@ -285,21 +291,8 @@ export default function NewProduct() {
       setSaving(true);
       setUploading(true);
 
-      // Upload algemene afbeeldingen indien geselecteerd
-      let imageUrls: string[] = [];
-      if (selectedFiles.length > 0) {
-        try {
-          imageUrls = await uploadImages(selectedFiles);
-        } catch (err) {
-          setError("Fout bij het uploaden van de algemene afbeeldingen");
-          setSaving(false);
-          setUploading(false);
-          return;
-        }
-      }
-
       // Upload afbeeldingen per kleur
-      const colorsData: Array<{ name: string; images: string[] }> = [];
+      const colorsData: Array<{ name: string; colorCode: string; images: string[] }> = [];
       
       for (const color of colors) {
         if (color.files.length > 0) {
@@ -307,6 +300,7 @@ export default function NewProduct() {
             const colorImageUrls = await uploadImages(color.files);
             colorsData.push({
               name: color.name.trim(),
+              colorCode: color.colorCode || "#000000",
               images: colorImageUrls,
             });
           } catch (err) {
@@ -315,25 +309,17 @@ export default function NewProduct() {
             setUploading(false);
             return;
           }
-        } else if (color.name.trim()) {
-          // Kleur zonder afbeeldingen toevoegen
-          colorsData.push({
-            name: color.name.trim(),
-            images: [],
-          });
         }
       }
 
-      // Bepaal hoofdafbeelding (eerste algemene image of eerste kleur image)
+      // Bepaal hoofdafbeelding (eerste image van eerste kleur)
       let mainImageUrl: string | null = null;
-      if (imageUrls.length > 0) {
-        mainImageUrl = imageUrls[0];
-      } else if (colorsData.length > 0 && colorsData[0].images.length > 0) {
+      if (colorsData.length > 0 && colorsData[0].images.length > 0) {
         mainImageUrl = colorsData[0].images[0];
       }
 
       // Combineer alle images voor backward compatibility
-      const allImages: string[] = [...imageUrls];
+      const allImages: string[] = [];
       colorsData.forEach((color) => {
         allImages.push(...color.images);
       });
@@ -509,84 +495,6 @@ export default function NewProduct() {
                   </select>
                 </div>
 
-                {/* Algemene Product Afbeeldingen Upload */}
-                <div className="mb-6">
-                  <label className="block text-sm font-bold text-black mb-2">
-                    Algemene Product Afbeeldingen {previewUrls.length > 0 && `(${previewUrls.length})`}
-                  </label>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Optioneel: Algemene afbeeldingen die niet aan een specifieke kleur gekoppeld zijn
-                  </p>
-
-                  {/* Preview Grid */}
-                  {previewUrls.length > 0 && (
-                    <div className="grid grid-cols-4 gap-4 mb-4">
-                      {previewUrls.map((url, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={url}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-2 right-2 bg-red-600 text-white w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-700"
-                          >
-                            ×
-                          </button>
-                          {index === 0 && (
-                            <div className="absolute bottom-2 left-2 bg-black text-white text-xs px-2 py-1 rounded">
-                              Hoofd
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Upload Zone */}
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-black transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileChange}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <label
-                      htmlFor="file-upload"
-                      className="cursor-pointer"
-                    >
-                      <div>
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <svg
-                            className="w-8 h-8 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 4v16m8-8H4"
-                            />
-                          </svg>
-                        </div>
-                        <p className="text-sm font-medium text-black mb-1">
-                          {previewUrls.length > 0 ? "Meer afbeeldingen toevoegen" : "Klik om afbeeldingen te uploaden"}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          PNG, JPG, GIF tot 5MB per afbeelding<br />
-                          Of gebruik <span className="font-semibold">Ctrl+V</span> om te plakken
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
                 {/* Kleuren met per-kleur afbeeldingen */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
@@ -602,7 +510,7 @@ export default function NewProduct() {
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mb-4">
-                    Voeg kleuren toe en upload per kleur specifieke afbeeldingen
+                    Voeg kleuren toe en upload per kleur specifieke afbeeldingen. Elke kleur moet minstens één afbeelding hebben.
                   </p>
 
                   {colors.length === 0 && (
@@ -614,7 +522,21 @@ export default function NewProduct() {
 
                   {colors.map((color) => (
                     <div key={color.id} className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3 mb-3">
+                        {/* Kleur bolletje */}
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-8 h-8 rounded-full border-2 border-gray-300 shadow-sm"
+                            style={{ backgroundColor: color.colorCode }}
+                          />
+                          <input
+                            type="color"
+                            value={color.colorCode}
+                            onChange={(e) => updateColorCode(color.id, e.target.value)}
+                            className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                            title="Selecteer kleur"
+                          />
+                        </div>
                         <input
                           type="text"
                           value={color.name}
@@ -625,7 +547,7 @@ export default function NewProduct() {
                         <button
                           type="button"
                           onClick={() => removeColor(color.id)}
-                          className="ml-3 text-red-600 hover:text-red-700 font-medium text-sm"
+                          className="text-red-600 hover:text-red-700 font-medium text-sm"
                         >
                           Verwijderen
                         </button>

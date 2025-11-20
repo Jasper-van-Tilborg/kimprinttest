@@ -8,6 +8,7 @@ export const supabase = createBrowserClient();
 // Types voor de database
 export type ColorVariant = {
   name: string;
+  colorCode: string;
   images: string[];
 };
 

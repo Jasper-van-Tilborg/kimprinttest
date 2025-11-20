@@ -3,8 +3,6 @@
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import FadeInScroll from "../components/FadeInScroll";
-import { useFadeInScroll } from "../../hooks/useFadeInScroll";
 
 const categories = [
   {
@@ -82,14 +80,13 @@ const categories = [
 ];
 
 export default function Fotoboek() {
-  const heroSection = useFadeInScroll({ threshold: 0.1, rootMargin: '0px' });
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <Navbar activePage="fotoboek" />
 
       {/* Hero Section */}
-      <section ref={heroSection.ref} className={`bg-white py-6 md:py-16 ${heroSection.className}`}>
+      <section className="bg-white py-6 md:py-16">
         <div className="grid-12">
           <div className="col-12">
             <h1 className="text-3xl md:text-5xl font-bold text-black mb-4 md:mb-8">Ons Fotoboek</h1>
@@ -112,7 +109,7 @@ export default function Fotoboek() {
             const isEven = index % 2 === 0;
             
             return (
-              <FadeInScroll 
+              <div 
                 key={category.title}
                 className={`mb-8 md:mb-20 last:mb-0 flex flex-col ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} gap-4 md:gap-8 items-center group`}
               >
@@ -179,7 +176,7 @@ export default function Fotoboek() {
                     </Link>
                   </div>
                 </div>
-              </FadeInScroll>
+              </div>
             );
           })}
         </div>

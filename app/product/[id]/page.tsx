@@ -5,10 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import FadeInScroll from "../../components/FadeInScroll";
 import { useState, use } from "react";
 import { useCart } from "../../../contexts/CartContext";
-import { useFadeInScroll } from "../../../hooks/useFadeInScroll";
 
 export default function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -20,7 +18,6 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
   
-  const productSection = useFadeInScroll({ threshold: 0.1, rootMargin: '0px 0px -100px 0px' });
 
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -73,7 +70,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Main Product Section */}
-      <section ref={productSection.ref} className={`pt-4 md:pt-8 pb-8 md:pb-16 ${productSection.className}`}>
+      <section className="pt-4 md:pt-8 pb-8 md:pb-16">
         <div className="grid-12">
           {/* Mobile: Single Image */}
           <div className="md:hidden col-12 mb-4">
@@ -357,7 +354,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
             {/* Mobile: Andere Must-Haves */}
             <div className="mt-6">
               <h2 className="text-lg font-bold text-gray-900 mb-3">Andere Must-Haves</h2>
-              <FadeInScroll className="group">
+              <div className="group">
                 <Link href="/product/demo-tshirt" className="block">
                   <div className="bg-gray-200 rounded-lg mb-3 overflow-hidden group-active:scale-[0.98] transition-transform" style={{ height: '180px' }}>
                     <div className="w-full h-full flex items-center justify-center">
@@ -369,7 +366,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                     <p className="text-gray-600 text-xs font-medium">€60</p>
                   </div>
                 </Link>
-              </FadeInScroll>
+              </div>
             </div>
           </div>
 
@@ -437,7 +434,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Andere Must-Haves</h2>
                 <div className="grid grid-cols-3 gap-4">
                 {[1, 2, 3].map((item, index) => (
-                  <FadeInScroll key={item} className="group">
+                  <div key={item} className="group">
                     <Link href="/product/demo-tshirt" className="block">
                       <div className="bg-gray-200 rounded-lg mb-3 overflow-hidden group-hover:shadow-lg transition-shadow duration-300" style={{ height: '200px' }}>
                         <div className="w-full h-full flex items-center justify-center">
@@ -449,7 +446,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                         <p className="text-gray-600 text-sm font-medium">€60</p>
                       </div>
                     </Link>
-                  </FadeInScroll>
+                  </div>
                 ))}
                 </div>
               </div>

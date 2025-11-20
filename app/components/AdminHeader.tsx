@@ -25,7 +25,7 @@ export default function AdminHeader({ userEmail, onSignOut }: AdminHeaderProps) 
           <Link href="/admin/dashboard" className="flex items-center gap-4 group transition-all">
             <div className="relative">
               <Image
-                src="/images/K-imprint logo.avif"
+                src="/images/logo/K-imprint logo.avif"
                 alt="K-imprint Logo"
                 width={70}
                 height={70}

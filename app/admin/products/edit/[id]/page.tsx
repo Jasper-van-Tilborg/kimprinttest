@@ -6,6 +6,14 @@ import Link from "next/link";
 import { useAuth } from "../../../../../hooks/useAuth";
 import { supabase } from "../../../../../lib/supabase";
 
+interface ColorVariant {
+  id: string;
+  name: string;
+  files: File[];
+  previewUrls: string[];
+  existingImages: string[];
+}
+
 export default function EditProduct() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
@@ -23,6 +31,7 @@ export default function EditProduct() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [colors, setColors] = useState<ColorVariant[]>([]);
   const [uploading, setUploading] = useState(false);
   const [productLoading, setProductLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,6 +69,18 @@ export default function EditProduct() {
             // Backwards compatibility voor oude producten met alleen image_url
             setExistingImages([data.image_url]);
             setPreviewUrls([data.image_url]);
+          }
+
+          // Laad bestaande kleuren
+          if (data.colors && Array.isArray(data.colors) && data.colors.length > 0) {
+            const loadedColors: ColorVariant[] = data.colors.map((color: any, index: number) => ({
+              id: `existing-${index}-${Date.now()}`,
+              name: color.name || "",
+              files: [],
+              previewUrls: color.images || [],
+              existingImages: color.images || [],
+            }));
+            setColors(loadedColors);
           }
         }
       } catch (err) {
@@ -193,13 +214,104 @@ export default function EditProduct() {
     setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const uploadImages = async (): Promise<string[]> => {
-    if (selectedFiles.length === 0) return [];
+  // Kleuren beheer functies
+  const addColor = () => {
+    const newColor: ColorVariant = {
+      id: Date.now().toString(),
+      name: "",
+      files: [],
+      previewUrls: [],
+      existingImages: [],
+    };
+    setColors((prev) => [...prev, newColor]);
+  };
+
+  const removeColor = (colorId: string) => {
+    setColors((prev) => prev.filter((c) => c.id !== colorId));
+  };
+
+  const updateColorName = (colorId: string, name: string) => {
+    setColors((prev) =>
+      prev.map((c) => (c.id === colorId ? { ...c, name } : c))
+    );
+  };
+
+  const handleColorFileChange = (colorId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Valideer alle bestanden
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        setError("Alleen afbeeldingen zijn toegestaan");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Afbeelding is te groot (max 5MB)");
+        return;
+      }
+    }
+
+    setColors((prev) =>
+      prev.map((c) => {
+        if (c.id === colorId) {
+          const newFiles = [...c.files, ...files];
+          
+          // Maak previews voor nieuwe bestanden
+          files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              setColors((prevColors) =>
+                prevColors.map((color) =>
+                  color.id === colorId
+                    ? { ...color, previewUrls: [...color.previewUrls, reader.result as string] }
+                    : color
+                )
+              );
+            };
+            reader.readAsDataURL(file);
+          });
+
+          return { ...c, files: newFiles };
+        }
+        return c;
+      })
+    );
+    setError("");
+  };
+
+  const removeColorImage = (colorId: string, index: number) => {
+    setColors((prev) =>
+      prev.map((c) => {
+        if (c.id === colorId) {
+          const isExisting = index < c.existingImages.length;
+          if (isExisting) {
+            // Verwijder uit bestaande afbeeldingen
+            return {
+              ...c,
+              existingImages: c.existingImages.filter((_, i) => i !== index),
+              previewUrls: c.previewUrls.filter((_, i) => i !== index),
+            };
+          } else {
+            // Verwijder uit nieuwe bestanden
+            const newFileIndex = index - c.existingImages.length;
+            return {
+              ...c,
+              files: c.files.filter((_, i) => i !== newFileIndex),
+              previewUrls: c.previewUrls.filter((_, i) => i !== index),
+            };
+          }
+        }
+        return c;
+      })
+    );
+  };
+
+  const uploadImages = async (files: File[]): Promise<string[]> => {
+    if (files.length === 0) return [];
 
     try {
-      setUploading(true);
-
-      const uploadPromises = selectedFiles.map(async (file) => {
+      const uploadPromises = files.map(async (file) => {
         // Genereer unieke bestandsnaam
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -230,10 +342,7 @@ export default function EditProduct() {
       return urls;
     } catch (err) {
       console.error("Error uploading images:", err);
-      setError("Fout bij het uploaden van de afbeeldingen");
-      return [];
-    } finally {
-      setUploading(false);
+      throw err;
     }
   };
 
@@ -247,23 +356,73 @@ export default function EditProduct() {
       return;
     }
 
+    // Valideer kleuren (als er kleuren zijn, moeten ze een naam hebben)
+    const invalidColors = colors.filter((c) => !c.name.trim());
+    if (invalidColors.length > 0) {
+      setError("Alle kleuren moeten een naam hebben");
+      return;
+    }
+
     try {
       setSaving(true);
+      setUploading(true);
 
-      // Upload nieuwe afbeeldingen indien geselecteerd
+      // Upload nieuwe algemene afbeeldingen indien geselecteerd
       let newImageUrls: string[] = [];
       if (selectedFiles.length > 0) {
-        const uploadedUrls = await uploadImages();
-        if (uploadedUrls.length > 0) {
-          newImageUrls = uploadedUrls;
-        } else {
+        try {
+          newImageUrls = await uploadImages(selectedFiles);
+        } catch (err) {
+          setError("Fout bij het uploaden van de algemene afbeeldingen");
           setSaving(false);
-          return; // Stop als upload mislukt
+          setUploading(false);
+          return;
         }
       }
 
-      // Combineer bestaande en nieuwe afbeeldingen
+      // Combineer bestaande en nieuwe algemene afbeeldingen
       const allImages = [...existingImages, ...newImageUrls];
+
+      // Upload afbeeldingen per kleur
+      const colorsData: Array<{ name: string; images: string[] }> = [];
+      
+      for (const color of colors) {
+        // Combineer bestaande en nieuwe afbeeldingen voor deze kleur
+        const colorAllImages = [...color.existingImages];
+        
+        if (color.files.length > 0) {
+          try {
+            const colorImageUrls = await uploadImages(color.files);
+            colorAllImages.push(...colorImageUrls);
+          } catch (err) {
+            setError(`Fout bij het uploaden van afbeeldingen voor kleur "${color.name}"`);
+            setSaving(false);
+            setUploading(false);
+            return;
+          }
+        }
+
+        if (color.name.trim()) {
+          colorsData.push({
+            name: color.name.trim(),
+            images: colorAllImages,
+          });
+        }
+      }
+
+      // Bepaal hoofdafbeelding (eerste algemene image of eerste kleur image)
+      let mainImageUrl: string | null = null;
+      if (allImages.length > 0) {
+        mainImageUrl = allImages[0];
+      } else if (colorsData.length > 0 && colorsData[0].images.length > 0) {
+        mainImageUrl = colorsData[0].images[0];
+      }
+
+      // Combineer alle images voor backward compatibility
+      const allProductImages: string[] = [...allImages];
+      colorsData.forEach((color) => {
+        allProductImages.push(...color.images);
+      });
 
       const { error: updateError } = await supabase
         .from("products")
@@ -273,8 +432,9 @@ export default function EditProduct() {
           price: parseFloat(formData.price),
           category: formData.category,
           stock: parseInt(formData.stock) || 0,
-          image_url: allImages[0] || null, // Eerste afbeelding als main image
-          images: allImages, // Array met alle afbeeldingen
+          image_url: mainImageUrl,
+          images: allProductImages.length > 0 ? allProductImages : null,
+          colors: colorsData.length > 0 ? colorsData : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", productId);
@@ -290,6 +450,7 @@ export default function EditProduct() {
       setError("Er is een fout opgetreden");
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   };
 
@@ -432,11 +593,14 @@ export default function EditProduct() {
                   </select>
                 </div>
 
-                {/* Afbeeldingen Upload */}
+                {/* Algemene Product Afbeeldingen Upload */}
                 <div className="mb-6">
                   <label className="block text-sm font-bold text-black mb-2">
-                    Product Afbeeldingen {previewUrls.length > 0 && `(${previewUrls.length})`}
+                    Algemene Product Afbeeldingen {previewUrls.length > 0 && `(${previewUrls.length})`}
                   </label>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Optioneel: Algemene afbeeldingen die niet aan een specifieke kleur gekoppeld zijn
+                  </p>
 
                   {/* Preview Grid */}
                   {previewUrls.length > 0 && (
@@ -512,6 +676,120 @@ export default function EditProduct() {
                   </div>
                 </div>
 
+                {/* Kleuren met per-kleur afbeeldingen */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-bold text-black">
+                      Product Kleuren
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addColor}
+                      className="text-sm bg-gray-100 text-black px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                    >
+                      + Kleur toevoegen
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Voeg kleuren toe en upload per kleur specifieke afbeeldingen
+                  </p>
+
+                  {colors.length === 0 && (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
+                      <p className="text-sm">Nog geen kleuren toegevoegd</p>
+                      <p className="text-xs mt-1">Klik op "Kleur toevoegen" om te beginnen</p>
+                    </div>
+                  )}
+
+                  {colors.map((color) => (
+                    <div key={color.id} className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <input
+                          type="text"
+                          value={color.name}
+                          onChange={(e) => updateColorName(color.id, e.target.value)}
+                          placeholder="Kleurnaam (bijv. Zwart, Wit, Rood)"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors text-black text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeColor(color.id)}
+                          className="ml-3 text-red-600 hover:text-red-700 font-medium text-sm"
+                        >
+                          Verwijderen
+                        </button>
+                      </div>
+
+                      {/* Preview Grid voor deze kleur */}
+                      {color.previewUrls.length > 0 && (
+                        <div className="grid grid-cols-4 gap-3 mb-3">
+                          {color.previewUrls.map((url, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={url}
+                                alt={`${color.name} preview ${index + 1}`}
+                                className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeColorImage(color.id, index)}
+                                className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-700 text-xs"
+                              >
+                                ×
+                              </button>
+                              {index < color.existingImages.length && (
+                                <div className="absolute bottom-1 left-1 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded">
+                                  Bestaand
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Upload Zone voor deze kleur */}
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-black transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => handleColorFileChange(color.id, e)}
+                          className="hidden"
+                          id={`color-upload-${color.id}`}
+                        />
+                        <label
+                          htmlFor={`color-upload-${color.id}`}
+                          className="cursor-pointer"
+                        >
+                          <div>
+                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                              <svg
+                                className="w-6 h-6 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 4v16m8-8H4"
+                                />
+                              </svg>
+                            </div>
+                            <p className="text-xs font-medium text-black mb-1">
+                              {color.previewUrls.length > 0 ? "Meer afbeeldingen toevoegen" : "Afbeeldingen voor deze kleur"}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              PNG, JPG, GIF tot 5MB
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 {/* Actieknoppen */}
                 <div className="flex gap-4 pt-6 border-t border-gray-200">
                   <button
@@ -519,7 +797,7 @@ export default function EditProduct() {
                     disabled={saving || uploading}
                     className="bg-black text-white px-8 py-4 rounded-lg hover:bg-gray-800 transition-all font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {uploading ? `Afbeeldingen uploaden (${selectedFiles.length})...` : saving ? "Opslaan..." : "Wijzigingen Opslaan"}
+                    {uploading ? "Afbeeldingen uploaden..." : saving ? "Opslaan..." : "Wijzigingen Opslaan"}
                   </button>
                   <Link
                     href="/admin/products"

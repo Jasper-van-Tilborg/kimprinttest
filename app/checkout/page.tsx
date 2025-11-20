@@ -7,14 +7,12 @@ import Footer from "../components/Footer";
 import { useCart } from "../../contexts/CartContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useFadeInScroll } from "../../hooks/useFadeInScroll";
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
   const router = useRouter();
   const [step, setStep] = useState(1); // 1 = gegevens, 2 = betaling, 3 = bevestiging
   
-  const checkoutSection = useFadeInScroll({ threshold: 0.1, rootMargin: '0px 0px -100px 0px' });
   
   // Formulier state
   const [formData, setFormData] = useState({
@@ -150,7 +148,7 @@ export default function CheckoutPage() {
       ) : (
         <div>
           {/* Progress Steps */}
-          <div ref={checkoutSection.ref} className={`bg-white border-b border-gray-200 py-4 md:py-6 ${checkoutSection.className}`}>
+          <div className="bg-white border-b border-gray-200 py-4 md:py-6">
             <div className="grid-12">
               <div className="col-12">
                 <div className="flex items-center justify-center gap-2 md:gap-4">

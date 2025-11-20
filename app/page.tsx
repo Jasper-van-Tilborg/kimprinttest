@@ -4,17 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import FadeInScroll from "./components/FadeInScroll";
 import { useState } from "react";
-import { useFadeInScroll } from "../hooks/useFadeInScroll";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState('t-shirts');
-  
-  // Fade-in scroll hooks voor verschillende secties
-  const collectieSection = useFadeInScroll({ threshold: 0.1, rootMargin: '0px 0px -100px 0px' });
-  const nuVerkrijgbaarSection = useFadeInScroll({ threshold: 0.1, rootMargin: '0px 0px -100px 0px' });
-  const fotoboekSection = useFadeInScroll({ threshold: 0.1, rootMargin: '0px 0px -100px 0px' });
 
   const products = {
     'hoodies': [
@@ -43,13 +36,23 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="w-full">
-        <div className="bg-gray-200 h-[400px] md:h-[600px] flex items-center justify-center">
-          <span className="text-gray-500 text-sm md:text-lg">Hero Image Placeholder</span>
+        <div className="relative h-[450px] md:h-[80vh] overflow-hidden">
+          <div className="absolute inset-0 scale-100">
+            <Image
+              src="/images/hero/heroimage.png"
+              alt="K-imprint hero"
+              fill
+              className="object-cover"
+              style={{ objectPosition: 'center 25%' }}
+              priority
+              sizes="100vw"
+            />
+          </div>
         </div>
       </section>
 
       {/* Onze Collectie Section */}
-      <section ref={collectieSection.ref} className={`py-6 md:py-16 ${collectieSection.className}`}>
+      <section className="py-6 md:py-16">
         <div className="grid-12">
           <div className="col-12">
             <h2 className="font-bold text-gray-900 underline mb-4 md:mb-8 text-lg md:text-[26px]">Onze Collectie</h2>
@@ -144,21 +147,15 @@ export default function Home() {
           <div className="md:hidden col-12">
             <div className="grid grid-cols-2 gap-3">
               {products[activeCategory as keyof typeof products].slice(0, 2).map((product, index) => (
-                <FadeInScroll 
-                  key={`${activeCategory}-${index}`}
-                  threshold={0.1}
-                  rootMargin="0px 0px -50px 0px"
-                >
-                  <Link href="/assortiment" className="block">
-                    <div className="bg-gray-200 rounded-lg mb-2 flex items-center justify-center w-full h-[180px]">
-                      <span className="text-gray-500 text-xs">Product</span>
-                    </div>
-                    <div className="flex items-center justify-between w-full">
-                      <h3 className="font-medium text-gray-900 text-xs truncate flex-1 mr-2">{product.name}</h3>
-                      <p className="text-gray-600 text-xs font-medium shrink-0">{product.price}</p>
-                    </div>
-                  </Link>
-                </FadeInScroll>
+                <Link key={`${activeCategory}-${index}`} href="/assortiment" className="block">
+                  <div className="bg-gray-200 rounded-lg mb-2 flex items-center justify-center w-full h-[180px]">
+                    <span className="text-gray-500 text-xs">Product</span>
+                  </div>
+                  <div className="flex items-center justify-between w-full">
+                    <h3 className="font-medium text-gray-900 text-xs truncate flex-1 mr-2">{product.name}</h3>
+                    <p className="text-gray-600 text-xs font-medium shrink-0">{product.price}</p>
+                  </div>
+                </Link>
               ))}
             </div>
             <div className="text-center mt-4">
@@ -175,12 +172,7 @@ export default function Home() {
           <div className="hidden md:block col-12">
             <div className="grid-12" style={{ paddingLeft: 0, paddingRight: 0 }}>
               {products[activeCategory as keyof typeof products].map((product, index) => (
-                <FadeInScroll 
-                  key={`${activeCategory}-${index}`}
-                  threshold={0.1}
-                  rootMargin="0px 0px -50px 0px"
-                  className="col-3"
-                >
+                <div key={`${activeCategory}-${index}`} className="col-3">
                   <div className="bg-gray-200 rounded-lg mb-4 flex items-center justify-center w-full h-[395px]">
                     <span className="text-gray-500">Product Image</span>
                   </div>
@@ -188,7 +180,7 @@ export default function Home() {
                     <h3 className="font-medium text-gray-900">{product.name}</h3>
                     <p className="text-gray-600">{product.price}</p>
                   </div>
-                </FadeInScroll>
+                </div>
               ))}
             </div>
           </div>
@@ -196,7 +188,7 @@ export default function Home() {
       </section>
 
       {/* Nu verkrijgbaar Section */}
-      <section ref={nuVerkrijgbaarSection.ref} className={`py-6 md:py-16 bg-white ${nuVerkrijgbaarSection.className}`}>
+      <section className="py-6 md:py-16 bg-white">
         <div className="grid-12">
           <div className="col-12">
             <h2 className="font-bold text-gray-900 underline mb-4 md:mb-8 text-lg md:text-[26px]">Nu verkrijgbaar</h2>
@@ -288,7 +280,7 @@ export default function Home() {
       </section>
 
       {/* Check ons Fotoboek Section */}
-      <section ref={fotoboekSection.ref} className={`bg-black ${fotoboekSection.className} py-8 md:py-0`}>
+      <section className="bg-black py-8 md:py-0">
         <div className="grid-12">
           {/* Mobile Layout - Simplified */}
           <div className="md:hidden col-12">

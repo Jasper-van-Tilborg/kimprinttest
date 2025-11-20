@@ -42,7 +42,7 @@ export default function ShoppingCart() {
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <Image 
-                  src="/images/Shopping cart.svg" 
+                  src="/images/icons/Shopping cart.svg" 
                   alt="Empty cart" 
                   width={40} 
                   height={40}

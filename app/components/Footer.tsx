@@ -18,7 +18,7 @@ export default function Footer() {
             <div className="text-center">
               <div className="mb-3 flex justify-center">
                 <Image 
-                  src="/images/K-imprint logo.avif" 
+                  src="/images/logo/K-imprint logo.avif" 
                   alt="K-imprint Logo" 
                   width={100} 
                   height={52}
@@ -85,7 +85,7 @@ export default function Footer() {
           <div className="col-2 flex flex-col justify-center">
             <div className="mb-4">
               <Image 
-                src="/images/K-imprint logo.avif" 
+                src="/images/logo/K-imprint logo.avif" 
                 alt="K-imprint Logo" 
                 width={120} 
                 height={63}

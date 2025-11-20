@@ -7,7 +7,7 @@ import { supabase, Product } from "../../lib/supabase";
 import { useCart } from "../../contexts/CartContext";
 
 interface NavbarProps {
-  activePage?: 'home' | 'assortiment' | 'maak-je-eigen' | 'fotoboek';
+  activePage?: 'home' | 'assortiment' | 'maak-je-eigen' | 'fotoboek' | 'account';
 }
 
 export default function Navbar({ activePage = 'home' }: NavbarProps) {
@@ -87,7 +87,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
             {/* Logo - Mobile */}
             <Link href="/" className="flex items-center shrink-0">
               <Image 
-                src="/images/K-imprint logo.avif" 
+                src="/images/logo/K-imprint logo.avif" 
                 alt="K-imprint Logo" 
                 width={80} 
                 height={52}
@@ -108,7 +108,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
                   </svg>
                 ) : (
                   <Image 
-                    src="/images/Search.svg" 
+                    src="/images/icons/Search.svg" 
                     alt="Search" 
                     width={20} 
                     height={20}
@@ -121,7 +121,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
                 aria-label="Winkelwagen"
               >
                 <Image 
-                  src="/images/Shopping cart.svg" 
+                  src="/images/icons/Shopping cart.svg" 
                   alt="Shopping Cart" 
                   width={20} 
                   height={20}
@@ -158,7 +158,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
             <div className="border-t border-gray-200 bg-white px-4 py-3">
               <div className="flex items-center gap-3 w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 bg-white focus-within:border-[#8B4513] transition-colors">
                 <Image 
-                  src="/images/Search.svg" 
+                  src="/images/icons/Search.svg" 
                   alt="Search" 
                   width={18} 
                   height={18}
@@ -247,7 +247,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
                 className="py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-all font-medium text-base flex items-center gap-3"
               >
                 <Image 
-                  src="/images/person.svg" 
+                  src="/images/icons/person.svg" 
                   alt="Account" 
                   width={20} 
                   height={20}
@@ -265,7 +265,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
             <div className="col-2 flex items-center justify-start h-[63px]">
               <Link href="/" className="flex items-center">
                 <Image 
-                  src="/images/K-imprint logo.avif" 
+                  src="/images/logo/K-imprint logo.avif" 
                   alt="K-imprint Logo" 
                   width={96} 
                   height={63}
@@ -324,7 +324,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
               >
                 <div className="flex items-center gap-4 w-full border border-gray-300 rounded-lg px-4 py-2 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
                   <Image 
-                    src="/images/Search.svg" 
+                    src="/images/icons/Search.svg" 
                     alt="Search" 
                     width={20} 
                     height={20}
@@ -352,7 +352,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
                   <span className="text-2xl font-light inline-block animate-[spin_0.3s_ease-in-out]">×</span>
                 ) : (
                   <Image 
-                    src="/images/Search.svg" 
+                    src="/images/icons/Search.svg" 
                     alt="Search" 
                     width={20} 
                     height={20}
@@ -362,7 +362,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
               </button>
               <Link href="/account" className="p-2 text-gray-700 hover:text-[#8B4513] transition-all duration-200 hover:scale-110">
                 <Image 
-                  src="/images/person.svg" 
+                  src="/images/icons/person.svg" 
                   alt="Account" 
                   width={20} 
                   height={20}
@@ -373,7 +373,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
                 className="p-2 text-gray-700 hover:text-[#8B4513] transition-all duration-200 hover:scale-110 relative"
               >
                 <Image 
-                  src="/images/Shopping cart.svg" 
+                  src="/images/icons/Shopping cart.svg" 
                   alt="Shopping Cart" 
                   width={20} 
                   height={20}

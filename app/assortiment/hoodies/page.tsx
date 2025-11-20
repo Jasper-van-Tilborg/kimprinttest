@@ -4,10 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import FadeInScroll from "../../components/FadeInScroll";
 import { useState, useEffect } from "react";
 import { supabase, Product } from "../../../lib/supabase";
-import { useFadeInScroll } from "../../../hooks/useFadeInScroll";
 
 export default function HoodiesPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,8 +14,6 @@ export default function HoodiesPage() {
   const [selectedColor, setSelectedColor] = useState<string>("all");
   const [selectedSize, setSelectedSize] = useState<string>("all");
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  
-  const productsSection = useFadeInScroll({ threshold: 0.1, rootMargin: '0px 0px -100px 0px' });
 
   const colors = ["Zwart", "Wit", "Grijs", "Blauw", "Rood", "Groen", "Navy"];
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -371,7 +367,7 @@ export default function HoodiesPage() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
                 {products.map((product, index) => (
-                  <FadeInScroll 
+                  <div 
                     key={product.id}
                     className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
                   >
@@ -412,7 +408,7 @@ export default function HoodiesPage() {
                         </Link>
                       </div>
                     </div>
-                  </FadeInScroll>
+                  </div>
                 ))}
               </div>
             )}
@@ -446,7 +442,7 @@ export default function HoodiesPage() {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {products.map((product, index) => (
-                <FadeInScroll 
+                <div 
                   key={product.id}
                   className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
                 >
@@ -487,7 +483,7 @@ export default function HoodiesPage() {
                       </Link>
                     </div>
                   </div>
-                </FadeInScroll>
+                </div>
               ))}
             </div>
           )}

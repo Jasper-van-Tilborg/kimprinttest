@@ -73,6 +73,11 @@ async function deleteImages(urls: string[]): Promise<void> {
   }
 }
 
+export type ColorVariant = {
+  name: string;
+  images: string[];
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -82,6 +87,7 @@ export type Product = {
   stock: number;
   image_url: string | null;
   images: string[] | null;
+  colors: ColorVariant[] | null;
   sales_count: number;
   created_at: string;
   updated_at: string;

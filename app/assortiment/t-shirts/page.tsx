@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import FadeInScroll from "../../components/FadeInScroll";
 import { useState, useEffect } from "react";
 import { supabase, Product } from "../../../lib/supabase";
 export default function TShirtsPage() {
@@ -375,7 +374,7 @@ export default function TShirtsPage() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
                 {products.map((product, index) => (
-                  <FadeInScroll 
+                  <div 
                     key={product.id}
                     className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
                   >
@@ -416,7 +415,7 @@ export default function TShirtsPage() {
                         </Link>
                       </div>
                     </div>
-                  </FadeInScroll>
+                  </div>
                 ))}
               </div>
             )}
@@ -450,7 +449,7 @@ export default function TShirtsPage() {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {products.map((product, index) => (
-                <FadeInScroll 
+                <div 
                   key={product.id}
                   className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
                 >
@@ -491,7 +490,7 @@ export default function TShirtsPage() {
                       </Link>
                     </div>
                   </div>
-                </FadeInScroll>
+                </div>
               ))}
             </div>
           )}

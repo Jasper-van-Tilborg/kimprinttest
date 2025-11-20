@@ -20,13 +20,13 @@ const productTypes: { type: ProductType; name: string }[] = [
 const colors: Record<ProductType, ProductColor[]> = {
   "t-shirt": [
     { name: "Zwart", value: "#000000", image: "/images/tshirt.png" },
-    { name: "Wit", value: "#FFFFFF", image: "/images/wittshirt.png" },
+    { name: "Wit", value: "#FFFFFF", image: "/images/products/wittshirt.png" },
     { name: "Grijs", value: "#808080", image: "/images/tshirt.png" },
     { name: "Navy", value: "#1a1a2e", image: "/images/tshirt.png" },
   ],
   "hoodie": [
     { name: "Zwart", value: "#000000", image: "/images/tshirt.png" },
-    { name: "Wit", value: "#FFFFFF", image: "/images/wittshirt.png" },
+    { name: "Wit", value: "#FFFFFF", image: "/images/products/wittshirt.png" },
     { name: "Grijs", value: "#808080", image: "/images/tshirt.png" },
     { name: "Navy", value: "#1a1a2e", image: "/images/tshirt.png" },
   ],

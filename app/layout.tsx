@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "Kimprint - Personalisatie & Print",
   description: "Ontdek onze collectie gepersonaliseerde producten",
   icons: {
-    icon: "/images/K-imprint logo.avif",
+    icon: "/images/logo/K-imprint logo.avif",
   },
 };
 

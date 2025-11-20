@@ -6,6 +6,11 @@ import { createClient as createBrowserClient } from './supabase/client';
 export const supabase = createBrowserClient();
 
 // Types voor de database
+export type ColorVariant = {
+  name: string;
+  images: string[];
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -13,6 +18,8 @@ export type Product = {
   price: number;
   category: string;
   image_url?: string;
+  images?: string[];
+  colors?: ColorVariant[];
   created_at?: string;
   updated_at?: string;
 };

@@ -27,7 +27,7 @@ export default function TassenPage() {
       let query = supabase
         .from('products')
         .select('*')
-        .eq('category', 'tassen');
+        .ilike('category', '%tas%');
 
       switch (sortBy) {
         case 'price-low':

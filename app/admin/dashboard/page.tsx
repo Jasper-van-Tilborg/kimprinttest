@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../hooks/useAuth";
 import { supabase } from "../../../lib/supabase";
-import AdminHeader from "../../components/AdminHeader";
 
 type DashboardStats = {
   totalProducts: number;
@@ -29,7 +28,7 @@ type Product = {
 };
 
 export default function AdminDashboard() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0,
@@ -173,11 +172,6 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, [user]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/");
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
@@ -192,8 +186,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
-      <AdminHeader userEmail={user.email} onSignOut={handleSignOut} />
-
       {/* Hero Section */}
       <section className="py-16">
         <div className="grid-12">

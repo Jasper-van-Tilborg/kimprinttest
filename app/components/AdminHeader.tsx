@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
+import LogoutButton from "../admin/LogoutButton";
 
 interface AdminHeaderProps {
   userEmail?: string;
-  onSignOut: () => void;
+  onSignOut?: () => void;
 }
 
 export default function AdminHeader({ userEmail, onSignOut }: AdminHeaderProps) {
@@ -55,19 +56,23 @@ export default function AdminHeader({ userEmail, onSignOut }: AdminHeaderProps) 
                 Website
               </span>
             </Link>
-            <button
-              onClick={onSignOut}
-              className="bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-all font-medium shadow-sm hover:shadow-md"
-            >
-              <span className="flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                Uitloggen
-              </span>
-            </button>
+            {onSignOut ? (
+              <button
+                onClick={onSignOut}
+                className="bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-all font-medium shadow-sm hover:shadow-md"
+              >
+                <span className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  Uitloggen
+                </span>
+              </button>
+            ) : (
+              <LogoutButton />
+            )}
           </div>
         </div>
       </div>

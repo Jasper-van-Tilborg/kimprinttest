@@ -29,7 +29,7 @@ export default function RompersPage() {
       let query = supabase
         .from('products')
         .select('*')
-        .eq('category', 'rompers');
+        .ilike('category', '%romper%');
 
       switch (sortBy) {
         case 'price-low':

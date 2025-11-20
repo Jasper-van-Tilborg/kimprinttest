@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../hooks/useAuth";
 import { supabase } from "../../../lib/supabase";
-import AdminHeader from "../../components/AdminHeader";
 
 type Product = {
   id: string;
@@ -88,10 +87,9 @@ export default function AdminProducts() {
       }
     }
 
-    if (activeTab === "categories") {
-      fetchCategories();
-    }
-  }, [user, activeTab]);
+    // Haal altijd categorieën op (ook voor de filter dropdown)
+    fetchCategories();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -211,11 +209,16 @@ export default function AdminProducts() {
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === "all" || product.category === selectedCategory;
+      selectedCategory === "all" || 
+      product.category.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
-  const productCategories = Array.from(new Set(products.map((p) => p.category)));
+  // Haal categorieën uit de categories tabel (niet uit producten)
+  // Dit zorgt ervoor dat alle categorieën zichtbaar zijn, ook als er nog geen producten in zitten
+  const productCategories = categories.length > 0 
+    ? categories.map(c => c.name)
+    : Array.from(new Set(products.map((p) => p.category)));
 
   if (loading) {
     return (
@@ -231,8 +234,6 @@ export default function AdminProducts() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
-      <AdminHeader userEmail={user.email} onSignOut={handleSignOut} />
-
       {/* Header Section */}
       <section className="py-16">
         <div className="grid-12">

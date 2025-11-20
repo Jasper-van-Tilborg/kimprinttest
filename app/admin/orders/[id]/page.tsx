@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../../hooks/useAuth";
 import { supabase } from "../../../../lib/supabase";
-import AdminHeader from "../../../components/AdminHeader";
 
 type Order = {
   id: string;
@@ -172,8 +171,6 @@ export default function OrderDetail() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
-      <AdminHeader userEmail={user.email} onSignOut={handleSignOut} />
-
       {/* Header Section */}
       <section className="py-16">
         <div className="grid-12">

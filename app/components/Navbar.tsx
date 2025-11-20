@@ -242,7 +242,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
               </Link>
               <div className="border-t border-gray-200 my-2"></div>
               <Link 
-                href="/account" 
+                href="/account/dashboard" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-all font-medium text-base flex items-center gap-3"
               >

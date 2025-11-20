@@ -29,7 +29,7 @@ export default function TShirtsPage() {
       let query = supabase
         .from('products')
         .select('*')
-        .eq('category', 't-shirts');
+        .ilike('category', '%t-shirt%');
 
       // Sorteer op basis van geselecteerde optie
       switch (sortBy) {

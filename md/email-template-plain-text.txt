@@ -1,0 +1,30 @@
+═══════════════════════════════════════════════════════════
+                    K-IMPRINT
+            Jouw gepersonaliseerde kleding
+═══════════════════════════════════════════════════════════
+
+Welkom bij K-imprint! 👋
+
+Bedankt voor je registratie! We zijn ontzettend blij dat je deel uitmaakt van de K-imprint community.
+
+Om je account te activeren en te beginnen met het personaliseren van je favoriete producten, klik op de onderstaande link:
+
+{{ .ConfirmationURL }}
+
+⏰ Let op: Deze bevestigingslink is 24 uur geldig. Na bevestiging kun je direct beginnen met het personaliseren van je producten!
+
+We kijken ernaar uit om je te helpen bij het creëren van unieke, gepersonaliseerde producten.
+
+Met vriendelijke groet,
+Het K-imprint team
+
+═══════════════════════════════════════════════════════════
+
+K-imprint - Jouw gepersonaliseerde kleding & producten
+
+Als je deze e-mail niet hebt aangevraagd, kun je deze veilig negeren.
+
+© 2024 K-imprint. Alle rechten voorbehouden.
+
+
+

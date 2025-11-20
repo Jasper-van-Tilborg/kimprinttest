@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, isAdmin } from "@/lib/supabase";
-import AdminHeader from "@/app/components/AdminHeader";
 
 export default function SettingsPage() {
   const { user, loading, signOut } = useAuth();
@@ -193,8 +192,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <AdminHeader userEmail={user?.email} onSignOut={handleSignOut} />
-
       <main className="py-8">
         {/* Page Header */}
         <section className="pb-8">

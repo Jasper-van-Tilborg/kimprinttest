@@ -32,7 +32,7 @@ export default function HoodiesPage() {
       let query = supabase
         .from('products')
         .select('*')
-        .eq('category', 'hoodies');
+        .ilike('category', '%hoodie%');
 
       switch (sortBy) {
         case 'price-low':

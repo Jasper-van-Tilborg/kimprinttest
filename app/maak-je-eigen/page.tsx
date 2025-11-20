@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useCart } from "../../contexts/CartContext";
 
 type ProductType = "t-shirt" | "hoodie";
 type ProductColor = {
@@ -31,16 +32,40 @@ const colors: Record<ProductType, ProductColor[]> = {
   ],
 };
 
-const GRID_SIZE = 20; // 20x20 grid voor positioning
+// Prijzen voor custom producten
+const BASE_PRICES: Record<ProductType, number> = {
+  "t-shirt": 29.99,
+  "hoodie": 49.99,
+};
+
+const SIZES = ["XS", "S", "M", "L", "XL"];
+
+type CustomProductDraft = {
+  productType: ProductType;
+  color: ProductColor;
+  size: string;
+  uploadedImage: string | null;
+  imagePosition: { x: number; y: number };
+  imageSize: number;
+  createdAt: string;
+};
 
 export default function MaakJeEigenProduct() {
+  const { addItem, openCart } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<ProductType>("t-shirt");
   const [selectedColor, setSelectedColor] = useState<ProductColor>(colors["t-shirt"][0]);
+  const [selectedSize, setSelectedSize] = useState<string>("M");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
-  const [imageSize, setImageSize] = useState(100); // percentage - 100% = 9x9 grid cellen
+  const [imagePosition, setImagePosition] = useState({ x: 50, y: 50 }); // percentage-based (50% = center)
+  const [imageSize, setImageSize] = useState(100); // percentage
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isSnapped, setIsSnapped] = useState(false);
+  const [savedDrafts, setSavedDrafts] = useState<CustomProductDraft[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -64,40 +89,93 @@ export default function MaakJeEigenProduct() {
     }
   };
 
-  const handleGridClick = (x: number, y: number) => {
-    if (uploadedImage) {
-      setImagePosition({ x, y });
-    }
-  };
-
-  const getGridPosition = useCallback((clientX: number, clientY: number) => {
-    if (!previewRef.current) return { x: 0, y: 0 };
+  // Converteer pixel positie naar percentage binnen het product gebied
+  const getPositionFromEvent = useCallback((clientX: number, clientY: number) => {
+    if (!previewRef.current) return { x: 50, y: 50 };
     const rect = previewRef.current.getBoundingClientRect();
-    const x = Math.floor((clientX - rect.left) / (rect.width / GRID_SIZE));
-    const y = Math.floor((clientY - rect.top) / (rect.height / GRID_SIZE));
+    
+    // Product gebied is 75% van de container, gecentreerd
+    const productAreaWidth = rect.width * 0.75;
+    const productAreaHeight = rect.height * 0.75;
+    const productAreaX = rect.left + (rect.width - productAreaWidth) / 2;
+    const productAreaY = rect.top + (rect.height - productAreaHeight) / 2;
+    
+    // Bereken relatieve positie binnen product gebied
+    const relativeX = ((clientX - productAreaX) / productAreaWidth) * 100;
+    const relativeY = ((clientY - productAreaY) / productAreaHeight) * 100;
+    
+    return { x: relativeX, y: relativeY };
+  }, []);
+
+  // Snap naar center als dichtbij (binnen 5% van het midden)
+  const snapToCenter = useCallback((x: number, y: number) => {
+    const SNAP_THRESHOLD = 5; // 5% threshold
+    const centerX = 50;
+    const centerY = 50;
+    
+    if (Math.abs(x - centerX) < SNAP_THRESHOLD && Math.abs(y - centerY) < SNAP_THRESHOLD) {
+      setIsSnapped(true);
+      return { x: centerX, y: centerY };
+    }
+    setIsSnapped(false);
     return { x, y };
+  }, []);
+
+  // Beperk positie binnen product grenzen (rekening houdend met image grootte)
+  const constrainPosition = useCallback((x: number, y: number, size: number) => {
+    // Image grootte in percentage van product gebied (75% is de product area)
+    // Schaal aangepast: wat 25% was is nu 100%, dus vermenigvuldigen met 0.25
+    const imageSizePercent = (size / 100) * 75 * 0.25;
+    
+    // Min en max posities zodat image binnen product blijft
+    // Image is gecentreerd, dus we moeten de helft van de grootte aftrekken
+    const halfSize = imageSizePercent / 2;
+    const minX = halfSize;
+    const maxX = 100 - halfSize;
+    const minY = halfSize;
+    const maxY = 100 - halfSize;
+    
+    const constrainedX = Math.max(minX, Math.min(maxX, x));
+    const constrainedY = Math.max(minY, Math.min(maxY, y));
+    
+    return { x: constrainedX, y: constrainedY };
   }, []);
 
   const handleStart = useCallback((clientX: number, clientY: number) => {
     if (!uploadedImage || !previewRef.current) return;
     
-    const { x, y } = getGridPosition(clientX, clientY);
+    const position = getPositionFromEvent(clientX, clientY);
     setIsDragging(true);
-    setDragStart({ x: x - imagePosition.x, y: y - imagePosition.y });
-  }, [uploadedImage, imagePosition, getGridPosition]);
+    // Sla offset op voor smooth dragging
+    setDragStart({ 
+      x: position.x - imagePosition.x, 
+      y: position.y - imagePosition.y 
+    });
+  }, [uploadedImage, imagePosition, getPositionFromEvent]);
 
   const handleMove = useCallback((clientX: number, clientY: number) => {
     if (!isDragging || !uploadedImage || !previewRef.current) return;
     
-    const { x, y } = getGridPosition(clientX, clientY);
-    const newX = Math.max(0, Math.min(GRID_SIZE - 1, x - dragStart.x));
-    const newY = Math.max(0, Math.min(GRID_SIZE - 1, y - dragStart.y));
+    const position = getPositionFromEvent(clientX, clientY);
+    // Bereken nieuwe positie met offset
+    let newX = position.x - dragStart.x;
+    let newY = position.y - dragStart.y;
     
-    setImagePosition({ x: newX, y: newY });
-  }, [isDragging, uploadedImage, dragStart, getGridPosition]);
+    // Beperk binnen grenzen
+    const constrained = constrainPosition(newX, newY, imageSize);
+    newX = constrained.x;
+    newY = constrained.y;
+    
+    // Snap naar center als dichtbij
+    const snapped = snapToCenter(newX, newY);
+    
+    setImagePosition(snapped);
+  }, [isDragging, uploadedImage, dragStart, getPositionFromEvent, constrainPosition, snapToCenter, imageSize]);
 
   const handleEnd = useCallback(() => {
     setIsDragging(false);
+    // Reset snap indicator na korte delay
+    setTimeout(() => setIsSnapped(false), 200);
   }, []);
 
   // Mouse events
@@ -133,11 +211,196 @@ export default function MaakJeEigenProduct() {
   }, [handleEnd]);
 
   const handleSizeChange = (newSize: number) => {
-    setImageSize(Math.max(10, Math.min(200, newSize)));
+    const constrainedSize = Math.max(10, Math.min(100, newSize));
+    setImageSize(constrainedSize);
+    
+    // Pas positie aan als image te groot wordt voor huidige positie
+    if (uploadedImage) {
+      const constrained = constrainPosition(imagePosition.x, imagePosition.y, constrainedSize);
+      if (constrained.x !== imagePosition.x || constrained.y !== imagePosition.y) {
+        setImagePosition(constrained);
+      }
+    }
   };
 
-  const snapToGrid = (value: number) => {
-    return Math.round(value / (100 / GRID_SIZE)) * (100 / GRID_SIZE);
+
+  // Laad opgeslagen concepten bij mount
+  useEffect(() => {
+    const saved = localStorage.getItem("custom-product-drafts");
+    if (saved) {
+      try {
+        setSavedDrafts(JSON.parse(saved));
+      } catch (e) {
+        console.error("Error loading drafts:", e);
+      }
+    }
+
+    // Luister naar loadDraft event vanuit account dashboard
+    const handleLoadDraft = (event: CustomEvent<CustomProductDraft>) => {
+      const draft = event.detail;
+      setSelectedProduct(draft.productType);
+      setSelectedColor(draft.color);
+      setSelectedSize(draft.size);
+      setUploadedImage(draft.uploadedImage);
+      setImagePosition(draft.imagePosition);
+      setImageSize(draft.imageSize);
+    };
+
+    window.addEventListener("loadDraft" as any, handleLoadDraft as EventListener);
+    return () => {
+      window.removeEventListener("loadDraft" as any, handleLoadDraft as EventListener);
+    };
+  }, []);
+
+  // Genereer preview afbeelding met canvas
+  const generatePreview = useCallback(async (): Promise<string | null> => {
+    if (!uploadedImage || !previewRef.current) return null;
+
+    return new Promise((resolve) => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
+
+      // Stel canvas grootte in
+      canvas.width = 800;
+      canvas.height = 800;
+
+      // Laad product template
+      const productImg = new Image();
+      productImg.crossOrigin = "anonymous";
+      productImg.onload = () => {
+        // Teken product template
+        const productSize = canvas.width * 0.75;
+        const productX = (canvas.width - productSize) / 2;
+        const productY = (canvas.height - productSize) / 2;
+        ctx.drawImage(productImg, productX, productY, productSize, productSize);
+
+        // Kleur overlay (als niet wit)
+        if (selectedColor.value !== "#FFFFFF") {
+          ctx.fillStyle = selectedColor.value;
+          ctx.globalAlpha = 0.4;
+          ctx.globalCompositeOperation = "multiply";
+          ctx.fillRect(productX, productY, productSize, productSize);
+          ctx.globalAlpha = 1.0;
+          ctx.globalCompositeOperation = "source-over";
+        }
+
+        // Laad en teken geüploade afbeelding
+        const uploadedImg = new Image();
+        uploadedImg.crossOrigin = "anonymous";
+        uploadedImg.onload = () => {
+          // Schaal aangepast: wat 25% was is nu 100%, dus vermenigvuldigen met 0.25
+          const imgWidth = (productSize * imageSize * 0.25) / 100;
+          const imgHeight = (productSize * imageSize * 0.25) / 100;
+          // Position is nu in percentage (0-100), center is 50%
+          const imgX = productX + (productSize * imagePosition.x) / 100 - imgWidth / 2;
+          const imgY = productY + (productSize * imagePosition.y) / 100 - imgHeight / 2;
+
+          ctx.drawImage(uploadedImg, imgX, imgY, imgWidth, imgHeight);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        uploadedImg.onerror = () => resolve(null);
+        uploadedImg.src = uploadedImage;
+      };
+      productImg.onerror = () => resolve(null);
+      productImg.src = selectedColor.image;
+    });
+  }, [uploadedImage, selectedColor, imagePosition, imageSize]);
+
+  // Bereken prijs
+  const calculatePrice = (): number => {
+    return BASE_PRICES[selectedProduct];
+  };
+
+  // Sla concept op
+  const handleSaveDraft = async () => {
+    if (!uploadedImage) {
+      alert("Upload eerst een foto om op te slaan als concept.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const draft: CustomProductDraft = {
+        productType: selectedProduct,
+        color: selectedColor,
+        size: selectedSize,
+        uploadedImage,
+        imagePosition,
+        imageSize,
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedDrafts = [...savedDrafts, draft];
+      setSavedDrafts(updatedDrafts);
+      localStorage.setItem("custom-product-drafts", JSON.stringify(updatedDrafts));
+
+      setSuccessMessage("Concept opgeslagen!");
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert("Fout bij het opslaan van het concept.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Laad concept
+  const handleLoadDraft = (draft: CustomProductDraft) => {
+    setSelectedProduct(draft.productType);
+    setSelectedColor(draft.color);
+    setSelectedSize(draft.size);
+    setUploadedImage(draft.uploadedImage);
+    setImagePosition(draft.imagePosition);
+    setImageSize(draft.imageSize);
+  };
+
+  // Verwijder concept
+  const handleDeleteDraft = (index: number) => {
+    const updatedDrafts = savedDrafts.filter((_, i) => i !== index);
+    setSavedDrafts(updatedDrafts);
+    localStorage.setItem("custom-product-drafts", JSON.stringify(updatedDrafts));
+  };
+
+  // Voeg toe aan winkelwagen
+  const handleAddToCart = async () => {
+    if (!uploadedImage) {
+      alert("Upload eerst een foto om toe te voegen aan de winkelwagen.");
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      const preview = await generatePreview();
+      const productName = `Custom ${productTypes.find((t) => t.type === selectedProduct)?.name || "Product"}`;
+      const uniqueId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      addItem({
+        id: uniqueId,
+        name: productName,
+        price: calculatePrice(),
+        image_url: preview || undefined,
+        color: selectedColor.name,
+        size: selectedSize,
+        quantity: 1,
+      });
+
+      setSuccessMessage("Toegevoegd aan winkelwagen!");
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        openCart();
+      }, 1000);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      alert("Fout bij het toevoegen aan de winkelwagen.");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -189,6 +452,26 @@ export default function MaakJeEigenProduct() {
                         <div className="w-4 h-4 bg-white rounded-full"></div>
                       </div>
                     )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Size Selector */}
+            <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
+              <h3 className="text-base font-bold text-gray-900 mb-3">Maat</h3>
+              <div className="grid grid-cols-5 gap-2">
+                {SIZES.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`py-2 px-2 rounded-lg text-sm font-medium transition-colors border ${
+                      selectedSize === size
+                        ? "bg-black text-white border-black"
+                        : "bg-transparent text-black border-black hover:bg-gray-50"
+                    }`}
+                  >
+                    {size}
                   </button>
                 ))}
               </div>
@@ -257,13 +540,15 @@ export default function MaakJeEigenProduct() {
                 {/* Uploaded Image */}
                 {uploadedImage && (
                   <div
-                    className="absolute border-2 border-dashed border-blue-500"
+                    className="absolute border-2 border-dashed transition-all duration-150"
                     style={{
-                      left: `${(imagePosition.x / GRID_SIZE) * 100}%`,
-                      top: `${(imagePosition.y / GRID_SIZE) * 100}%`,
-                      width: `${(imageSize / 100) * (9 / GRID_SIZE) * 100}%`,
-                      height: `${(imageSize / 100) * (9 / GRID_SIZE) * 100}%`,
+                      left: `${12.5 + (imagePosition.x / 100) * 75}%`, // 12.5% offset + position within 75% product area
+                      top: `${12.5 + (imagePosition.y / 100) * 75}%`,
+                      width: `${(imageSize / 100) * 75 * 0.25}%`, // Schaal aangepast: wat 25% was is nu 100%
+                      height: `${(imageSize / 100) * 75 * 0.25}%`,
+                      transform: 'translate(-50%, -50%)', // Center the image on the position
                       cursor: isDragging ? "grabbing" : "grab",
+                      borderColor: isSnapped ? '#10b981' : '#3b82f6', // Green when snapped, blue otherwise
                     }}
                   >
                     <img
@@ -274,23 +559,6 @@ export default function MaakJeEigenProduct() {
                     />
                   </div>
                 )}
-
-                {/* Grid Overlay (for positioning) */}
-                {uploadedImage && (
-                  <div className="absolute inset-0 grid grid-cols-20 grid-rows-20 pointer-events-none opacity-10">
-                    {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
-                      const x = i % GRID_SIZE;
-                      const y = Math.floor(i / GRID_SIZE);
-                      return (
-                        <div
-                          key={i}
-                          className="border border-gray-300"
-                          onClick={() => handleGridClick(x, y)}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
               </div>
 
               {/* Image Size Control */}
@@ -299,27 +567,52 @@ export default function MaakJeEigenProduct() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Grootte: {imageSize}%
                   </label>
-                  <input
-                    type="range"
-                    min="10"
-                    max="200"
-                    value={imageSize}
-                    onChange={(e) => handleSizeChange(Number(e.target.value))}
-                    className="w-full"
-                  />
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      value={imageSize}
+                      onChange={(e) => handleSizeChange(Number(e.target.value))}
+                      className="w-full"
+                    />
                 </div>
               )}
             </div>
 
+            {/* Price Display */}
+            <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-base font-semibold text-gray-900">Prijs</span>
+                <span className="text-2xl font-bold text-gray-900">€ {calculatePrice().toFixed(2)}</span>
+              </div>
+            </div>
+
             {/* Action Buttons */}
             <div className="space-y-3">
-              <button className="w-full py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-                Toevoegen aan winkelwagen
+              <button
+                onClick={handleAddToCart}
+                disabled={isAdding || !uploadedImage}
+                className={`w-full py-3 bg-black text-white rounded-lg font-medium transition-colors ${
+                  isAdding || !uploadedImage
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-gray-800"
+                }`}
+              >
+                {isAdding ? "Toevoegen..." : "Toevoegen aan winkelwagen"}
               </button>
-              <button className="w-full py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                Opslaan als concept
+              <button
+                onClick={handleSaveDraft}
+                disabled={isSaving || !uploadedImage}
+                className={`w-full py-3 border-2 border-black text-black rounded-lg font-medium transition-colors ${
+                  isSaving || !uploadedImage
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-gray-50"
+                }`}
+              >
+                {isSaving ? "Opslaan..." : "Opslaan als concept"}
               </button>
             </div>
+
           </div>
 
           {/* Desktop Layout */}
@@ -373,6 +666,26 @@ export default function MaakJeEigenProduct() {
                     </div>
                   </div>
 
+                  {/* Size Selector */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Maat</h3>
+                    <div className="grid grid-cols-5 gap-2">
+                      {SIZES.map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => setSelectedSize(size)}
+                          className={`py-3 px-4 rounded-lg text-base font-medium transition-colors border ${
+                            selectedSize === size
+                              ? "bg-black text-white border-black"
+                              : "bg-transparent text-black border-black hover:bg-gray-50"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Image Upload */}
                   <div className="mb-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Upload Foto</h3>
@@ -402,26 +715,90 @@ export default function MaakJeEigenProduct() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Grootte: {imageSize}%
                       </label>
-                      <input
-                        type="range"
-                        min="10"
-                        max="200"
-                        value={imageSize}
-                        onChange={(e) => handleSizeChange(Number(e.target.value))}
-                        className="w-full"
-                      />
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      value={imageSize}
+                      onChange={(e) => handleSizeChange(Number(e.target.value))}
+                      className="w-full"
+                    />
                     </div>
                   )}
 
+                  {/* Price Display */}
+                  <div className="mb-6">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-base font-semibold text-gray-900">Prijs</span>
+                        <span className="text-2xl font-bold text-gray-900">€ {calculatePrice().toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Action Buttons */}
                   <div className="space-y-3">
-                    <button className="w-full py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-                      Toevoegen aan winkelwagen
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={isAdding || !uploadedImage}
+                      className={`w-full py-3 bg-black text-white rounded-lg font-medium transition-colors ${
+                        isAdding || !uploadedImage
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-gray-800"
+                      }`}
+                    >
+                      {isAdding ? "Toevoegen..." : "Toevoegen aan winkelwagen"}
                     </button>
-                    <button className="w-full py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                      Opslaan als concept
+                    <button
+                      onClick={handleSaveDraft}
+                      disabled={isSaving || !uploadedImage}
+                      className={`w-full py-3 border-2 border-black text-black rounded-lg font-medium transition-colors ${
+                        isSaving || !uploadedImage
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
+                      {isSaving ? "Opslaan..." : "Opslaan als concept"}
                     </button>
                   </div>
+
+                  {/* Saved Drafts */}
+                  {savedDrafts.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Opgeslagen concepten</h3>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {savedDrafts.map((draft, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          >
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {productTypes.find((t) => t.type === draft.productType)?.name} - {draft.color.name} - {draft.size}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(draft.createdAt).toLocaleDateString("nl-NL")}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleLoadDraft(draft)}
+                                className="px-3 py-1 text-xs bg-[#8B4513] text-white rounded hover:bg-[#6B3410] transition-colors"
+                              >
+                                Laad
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDraft(index)}
+                                className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                              >
+                                Verwijder
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -466,13 +843,15 @@ export default function MaakJeEigenProduct() {
                     {/* Uploaded Image */}
                     {uploadedImage && (
                       <div
-                        className="absolute border-2 border-dashed border-blue-500"
+                        className="absolute border-2 border-dashed transition-all duration-150"
                         style={{
-                          left: `${(imagePosition.x / GRID_SIZE) * 100}%`,
-                          top: `${(imagePosition.y / GRID_SIZE) * 100}%`,
-                          width: `${(imageSize / 100) * (9 / GRID_SIZE) * 100}%`,
-                          height: `${(imageSize / 100) * (9 / GRID_SIZE) * 100}%`,
+                          left: `${12.5 + (imagePosition.x / 100) * 75}%`, // 12.5% offset + position within 75% product area
+                          top: `${12.5 + (imagePosition.y / 100) * 75}%`,
+                          width: `${(imageSize / 100) * 75 * 0.25}%`, // Schaal aangepast: wat 25% was is nu 100%
+                          height: `${(imageSize / 100) * 75 * 0.25}%`,
+                          transform: 'translate(-50%, -50%)', // Center the image on the position
                           cursor: isDragging ? "grabbing" : "grab",
+                          borderColor: isSnapped ? '#10b981' : '#3b82f6', // Green when snapped, blue otherwise
                         }}
                       >
                         <img
@@ -483,23 +862,6 @@ export default function MaakJeEigenProduct() {
                         />
                       </div>
                     )}
-
-                    {/* Grid Overlay (for positioning) */}
-                    {uploadedImage && (
-                      <div className="absolute inset-0 grid grid-cols-20 grid-rows-20 pointer-events-none opacity-10">
-                        {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
-                          const x = i % GRID_SIZE;
-                          const y = Math.floor(i / GRID_SIZE);
-                          return (
-                            <div
-                              key={i}
-                              className="border border-gray-300"
-                              onClick={() => handleGridClick(x, y)}
-                            />
-                          );
-                    })}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -507,6 +869,13 @@ export default function MaakJeEigenProduct() {
           </div>
         </div>
       </section>
+
+      {/* Success Message */}
+      {showSuccess && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-[fadeIn_0.3s_ease-in-out]">
+          {successMessage}
+        </div>
+      )}
 
       <Footer />
     </div>

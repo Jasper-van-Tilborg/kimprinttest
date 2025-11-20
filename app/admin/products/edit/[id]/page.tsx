@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../../../hooks/useAuth";
 import { supabase } from "../../../../../lib/supabase";
-import AdminHeader from "../../../../components/AdminHeader";
 
 export default function EditProduct() {
   const { user, loading, signOut } = useAuth();
@@ -317,8 +316,6 @@ export default function EditProduct() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
-      <AdminHeader userEmail={user.email} onSignOut={handleSignOut} />
-
       {/* Header Section */}
       <section className="py-16">
         <div className="grid-12">

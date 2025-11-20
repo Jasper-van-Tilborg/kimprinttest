@@ -1,17 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+// Legacy compatibility - gebruik de nieuwe client setup waar mogelijk
+// Deze export blijft voor backward compatibility tijdens migratie
+import { createClient as createBrowserClient } from './supabase/client';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    // Gracefully handle refresh token errors
-    storageKey: 'supabase-auth',
-  },
-});
+// Voor client-side gebruik
+export const supabase = createBrowserClient();
 
 // Types voor de database
 export type Product = {
@@ -37,6 +29,7 @@ export type User = {
 
 // Helper functie om te checken of een user admin is
 // Deze functie haalt de role op van de ingelogde gebruiker
+// Gebruikt de browser client voor backward compatibility
 export async function isAdmin(userId: string): Promise<boolean> {
   try {
     console.log('Checking admin status for user:', userId);

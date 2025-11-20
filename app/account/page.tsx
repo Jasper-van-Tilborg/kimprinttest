@@ -2,12 +2,13 @@
 
 import { useState, FormEvent, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import FadeInScroll from "../components/FadeInScroll";
 import { useAuth } from "../../hooks/useAuth";
 import { isAdmin } from "../../lib/supabase";
+import { login, signup } from "../../app/actions/auth";
 
 export default function Account() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,10 +18,32 @@ export default function Account() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   
-  const { user, signIn, signUp } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check for error/message in URL params
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    const messageParam = searchParams.get("message");
+    if (errorParam) {
+      setError(
+        errorParam === "invalid_credentials"
+          ? "Ongeldig e-mailadres of wachtwoord. Probeer het opnieuw."
+          : "Er is een fout opgetreden. Probeer het opnieuw."
+      );
+    }
+    if (messageParam) {
+      setMessage(
+        messageParam === "check_email"
+          ? "Check je e-mail voor een bevestigingslink."
+          : messageParam
+      );
+    }
+  }, [searchParams]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -30,7 +53,7 @@ export default function Account() {
         if (userIsAdmin) {
           router.push("/admin/dashboard");
         } else {
-          router.push("/");
+          router.push("/account/dashboard");
         }
       }
     }
@@ -42,20 +65,27 @@ export default function Account() {
     setError("");
     setLoading(true);
 
-    const { data, error } = await signIn(email, password);
-    
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else if (data?.user) {
-      // Check if user is admin
-      const userIsAdmin = await isAdmin(data.user.id);
+    try {
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("password", password);
+      const result = await login(formData);
       
-      if (userIsAdmin) {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/");
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+        if (result.requiresEmailConfirmation) {
+          setMessage("Je moet eerst je e-mailadres bevestigen voordat je kunt inloggen.");
+        }
       }
+      // Redirect happens in server action if successful
+    } catch (err: any) {
+      // Check if it's a redirect error (NEXT_REDIRECT)
+      if (err?.digest?.startsWith('NEXT_REDIRECT') || err?.message?.includes('NEXT_REDIRECT')) {
+        // Let the redirect happen
+        throw err;
+      }
+      setError(err.message || "Er is een fout opgetreden bij het inloggen.");
       setLoading(false);
     }
   };
@@ -63,26 +93,65 @@ export default function Account() {
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setMessage("");
 
     if (password !== passwordConfirm) {
       setError("Wachtwoorden komen niet overeen");
       return;
     }
 
+    if (password.length < 6) {
+      setError("Wachtwoord moet minimaal 6 karakters lang zijn");
+      return;
+    }
+
     setLoading(true);
 
-    const { error } = await signUp(email, password, {
-      first_name: firstName,
-      last_name: lastName,
-    });
-    
-    if (error) {
-      setError(error.message);
-    } else {
-      setError("Account aangemaakt! Check je email voor verificatie.");
+    try {
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("firstName", firstName);
+      formData.append("lastName", lastName);
+      
+      const result = await signup(formData);
+      
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+      } else if (result?.success) {
+        if (result.requiresEmailConfirmation) {
+          setMessage("Account aangemaakt! Check je e-mail voor een bevestigingslink om je account te activeren.");
+        } else {
+          setMessage("Account aangemaakt! Je kunt nu inloggen.");
+        }
+        setLoading(false);
+        // Reset form
+        setEmail("");
+        setPassword("");
+        setPasswordConfirm("");
+        setFirstName("");
+        setLastName("");
+        // Optioneel: redirect naar account pagina met success message
+        setTimeout(() => {
+          router.push("/account?message=check_email");
+        }, 2000);
+      } else {
+        // Fallback: als er geen result is maar ook geen error
+        setError("Er is een onbekende fout opgetreden. Probeer het opnieuw.");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      // Check if it's a redirect error (NEXT_REDIRECT)
+      if (err?.digest?.startsWith('NEXT_REDIRECT') || err?.message?.includes('NEXT_REDIRECT')) {
+        // Let the redirect happen
+        setLoading(false);
+        throw err;
+      }
+      setError(err.message || "Er is een fout opgetreden bij het aanmaken van het account.");
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   if (user) {
@@ -131,6 +200,12 @@ export default function Account() {
                   {error && (
                     <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                       {error}
+                    </div>
+                  )}
+
+                  {message && (
+                    <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
+                      {message}
                     </div>
                   )}
                   
@@ -195,6 +270,12 @@ export default function Account() {
                   {error && (
                     <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                       {error}
+                    </div>
+                  )}
+
+                  {message && (
+                    <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
+                      {message}
                     </div>
                   )}
                   

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../components/Navbar";
@@ -9,7 +9,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { isAdmin } from "../../lib/supabase";
 import { login, signup } from "../../app/actions/auth";
 
-export default function Account() {
+// Component die useSearchParams gebruikt
+function AccountContent() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -392,6 +393,29 @@ export default function Account() {
 
       <Footer />
     </div>
+  );
+}
+
+// Hoofdcomponent met Suspense boundary
+export default function Account() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
+        <Navbar />
+        <main className="flex-1 py-16">
+          <div className="grid-12">
+            <div className="col-12">
+              <div className="max-w-md mx-auto text-center">
+                <p className="text-gray-600">Laden...</p>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    }>
+      <AccountContent />
+    </Suspense>
   );
 }
 

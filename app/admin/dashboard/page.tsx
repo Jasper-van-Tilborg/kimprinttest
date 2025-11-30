@@ -284,12 +284,12 @@ export default function AdminDashboard() {
           </div>
 
           <div className="col-3 mb-8">
-            <Link href="/admin/products" className="block">
+            <Link href="/admin/collections" className="block">
               <div className="bg-white rounded-lg p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Beheer</p>
-                    <h3 className="text-xl font-bold text-black">Categorieën</h3>
+                    <h3 className="text-xl font-bold text-black">Collecties</h3>
                   </div>
                   <div className="text-3xl">→</div>
                 </div>

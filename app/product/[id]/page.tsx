@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import { useState, use, useEffect } from "react";
+import { useState, use, useEffect, useRef, useMemo } from "react";
 import { useCart } from "../../../contexts/CartContext";
 import { supabase } from "../../../lib/supabase";
 import type { Product, ColorVariant } from "../../../lib/supabase";
@@ -13,18 +13,44 @@ import type { Product, ColorVariant } from "../../../lib/supabase";
 export default function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addItem, openCart } = useCart();
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState('M');
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedColorImages, setSelectedColorImages] = useState<string[]>([]);
+  const [displayImagesState, setDisplayImagesState] = useState<string[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const isAddingToCartRef = useRef(false);
+
+  // Get size from URL query parameter
+  const sizeFromUrl = searchParams.get('size');
+  
+  // Memoize available sizes based on product - alleen als er maten zijn opgeslagen
+  const availableSizes = useMemo(() => {
+    if (product?.sizes && Array.isArray(product.sizes) && product.sizes.length > 0) {
+      return product.sizes;
+    }
+    // Geen maten - retourneer lege array
+    return [];
+  }, [product?.sizes]);
+  
+  // Memoize display sizes based on URL parameter and available sizes
+  const displaySizes = useMemo(() => {
+    if (availableSizes.length === 0) {
+      return [];
+    }
+    if (sizeFromUrl && availableSizes.includes(sizeFromUrl)) {
+      return [sizeFromUrl];
+    }
+    return availableSizes;
+  }, [sizeFromUrl, availableSizes]);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -146,6 +172,51 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     };
   }, [isLightboxOpen]);
 
+  // Update displayImagesState when selectedColorImages or product changes
+  useEffect(() => {
+    if (!product) return;
+    
+    // Bereken baseDisplayImages binnen de useEffect
+    const baseDisplayImages = selectedColorImages.length > 0 
+      ? selectedColorImages 
+      : (product.images && product.images.length > 0 
+          ? product.images 
+          : (product.image_url ? [product.image_url] : []));
+
+    setDisplayImagesState((prevState) => {
+      if (baseDisplayImages.length > 0) {
+        // Check of de arrays daadwerkelijk verschillen
+        const arraysEqual = prevState.length === baseDisplayImages.length &&
+          prevState.every((val, idx) => val === baseDisplayImages[idx]);
+        
+        if (!arraysEqual) {
+          return [...baseDisplayImages];
+        }
+        return prevState;
+      } else {
+        // Als baseDisplayImages leeg is geworden, reset displayImagesState ook
+        return [];
+      }
+    });
+    
+    setCurrentImageIndex(0);
+  }, [selectedColorImages, product]);
+
+  // Set initial selected size from URL if valid, of eerste maat als er maten zijn
+  useEffect(() => {
+    if (availableSizes.length > 0) {
+      if (sizeFromUrl && availableSizes.includes(sizeFromUrl)) {
+        setSelectedSize(sizeFromUrl);
+      } else {
+        // Geen size in URL, gebruik eerste beschikbare maat
+        setSelectedSize(availableSizes[0]);
+      }
+    } else {
+      // Geen maten beschikbaar
+      setSelectedSize(null);
+    }
+  }, [sizeFromUrl, availableSizes]);
+
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
@@ -167,20 +238,31 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
   }
 
   const handleAddToCart = () => {
-    if (!product) return;
+    // Voorkom dubbele toevoeging - check zowel state als ref
+    if (!product || addedToCart || isAddingToCartRef.current) {
+      return;
+    }
     
+    // Zet beide guards direct om race conditions te voorkomen
+    isAddingToCartRef.current = true;
+    setAddedToCart(true);
+    
+    // Voeg item toe
     addItem({
       id: product.id,
       name: product.name,
       price: product.price,
       image_url: selectedColorImages[0] || product.image_url || undefined,
       color: selectedColor || undefined,
-      size: selectedSize,
+      size: selectedSize || undefined,
       quantity: quantity,
     });
     
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
+    // Reset na 2 seconden
+    setTimeout(() => {
+      setAddedToCart(false);
+      isAddingToCartRef.current = false;
+    }, 2000);
   };
 
   // Get available colors from product
@@ -189,13 +271,38 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     : [];
 
   // Get all images (from selected color or general images)
-  const displayImages = selectedColorImages.length > 0 
+  const baseDisplayImages = selectedColorImages.length > 0 
     ? selectedColorImages 
-    : (product.images && product.images.length > 0 
+    : (product?.images && product.images.length > 0 
         ? product.images 
-        : (product.image_url ? [product.image_url] : []));
+        : (product?.image_url ? [product.image_url] : []));
 
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  // Use displayImagesState if it has items, otherwise fall back to baseDisplayImages
+  // displayImagesState wordt geüpdatet wanneer we wisselen
+  const displayImages = displayImagesState.length > 0 ? displayImagesState : baseDisplayImages;
+
+  // Functie om twee afbeeldingen van plaats te wisselen
+  const swapImages = (index1: number, index2: number) => {
+    // Gebruik de huidige displayImages (die al de juiste state heeft)
+    const currentImages = displayImagesState.length > 0 ? displayImagesState : baseDisplayImages;
+    
+    if (index1 === index2 || index1 < 0 || index2 < 0 || index1 >= currentImages.length || index2 >= currentImages.length) {
+      return;
+    }
+    
+    // Maak een nieuwe array en wissel de afbeeldingen
+    const newImages = [...currentImages];
+    [newImages[index1], newImages[index2]] = [newImages[index2], newImages[index1]];
+    
+    // Update de state
+    setDisplayImagesState(newImages);
+    
+    // Reset currentImageIndex naar 0 als we de hoofdafbeelding wisselen
+    // Dit zorgt ervoor dat de hoofdafbeelding altijd de eerste in de array is
+    if (index1 === 0 || index2 === 0) {
+      setCurrentImageIndex(0);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -229,7 +336,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 onClick={() => setIsLightboxOpen(true)}
               >
                 <Image
-                  src={displayImages[currentImageIndex]}
+                  src={displayImages[0]}
                   alt={product.name}
                   fill
                   className="object-cover"
@@ -239,9 +346,12 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                     {displayImages.map((_, index) => (
                       <button
                         key={index}
-                        onClick={() => setCurrentImageIndex(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          swapImages(0, index);
+                        }}
                         className={`w-1.5 h-1.5 rounded-full transition-all ${
-                          currentImageIndex === index ? 'bg-black' : 'bg-white border border-black'
+                          index === 0 ? 'bg-black' : 'bg-white border border-black'
                         }`}
                       />
                     ))}
@@ -265,7 +375,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 onClick={() => setIsLightboxOpen(true)}
               >
                 <Image
-                  src={displayImages[currentImageIndex]}
+                  src={displayImages[0]}
                   alt={product.name}
                   fill
                   className="object-cover"
@@ -275,9 +385,12 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                     {displayImages.map((_, index) => (
                       <button
                         key={index}
-                        onClick={() => setCurrentImageIndex(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          swapImages(0, index);
+                        }}
                         className={`w-2 h-2 rounded-full transition-all ${
-                          currentImageIndex === index ? 'bg-black' : 'bg-white border border-black'
+                          index === 0 ? 'bg-black' : 'bg-white border border-black'
                         }`}
                       />
                     ))}
@@ -293,48 +406,46 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
           
           <div className="hidden md:block col-6">
             {/* Thumbnail images - 2 boven, 1 onder */}
-            {displayImages.length > 1 ? (
+            {displayImages.length > 1 && (
               <div className="flex flex-col gap-4" style={{ height: '550px' }}>
                 {/* Top 2 images side by side */}
                 <div className="grid grid-cols-2 gap-4 flex-1">
-                  {displayImages.slice(1, 3).map((image, index) => (
-                    <div key={index} className="relative rounded-lg overflow-hidden">
-                      <Image
-                        src={image}
-                        alt={`${product.name} ${index + 2}`}
-                        fill
-                        className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => setCurrentImageIndex(index + 1)}
-                      />
-                    </div>
-                  ))}
-                  {displayImages.length === 1 && (
-                    <div className="bg-gray-200 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-500 text-sm">Geen afbeelding</span>
-                    </div>
-                  )}
+                  {Array.from({ length: 2 }).map((_, index) => {
+                    const imageIndex = index + 1;
+                    const hasImage = imageIndex < displayImages.length;
+                    return hasImage ? (
+                      <div key={index} className="relative rounded-lg overflow-hidden">
+                        <Image
+                          src={displayImages[imageIndex]}
+                          alt={`${product.name} ${imageIndex + 1}`}
+                          fill
+                          className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => swapImages(0, imageIndex)}
+                        />
+                      </div>
+                    ) : (
+                      <div key={index} className="relative rounded-lg overflow-hidden">
+                        {/* Lege ruimte - geen placeholder */}
+                      </div>
+                    );
+                  })}
                 </div>
                 {/* Bottom 1 wider image */}
-                {displayImages.length > 3 && (
+                {displayImages.length > 3 ? (
                   <div className="relative rounded-lg overflow-hidden flex-1">
                     <Image
                       src={displayImages[3]}
                       alt={`${product.name} 4`}
                       fill
                       className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => setCurrentImageIndex(3)}
+                      onClick={() => swapImages(0, 3)}
                     />
                   </div>
-                )}
-                {displayImages.length <= 3 && displayImages.length > 1 && (
-                  <div className="bg-gray-200 rounded-lg flex items-center justify-center flex-1">
-                    <span className="text-gray-500 text-sm">Geen extra afbeelding</span>
+                ) : (
+                  <div className="flex-1">
+                    {/* Lege ruimte - geen placeholder */}
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="bg-gray-200 rounded-lg flex items-center justify-center" style={{ height: '550px' }}>
-                <span className="text-gray-500 text-sm">Geen extra afbeeldingen</span>
               </div>
             )}
           </div>
@@ -393,25 +504,27 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 </div>
               )}
               
-              {/* Size Selection */}
-              <div className="mb-4">
-                <h3 className="text-base font-semibold text-gray-900 mb-2">Maat</h3>
-                <div className="grid grid-cols-5 gap-2">
-                  {sizes.map((size) => (
-                    <button 
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`py-2 px-2 rounded-lg text-sm font-medium transition-colors border ${
-                        selectedSize === size
-                          ? 'bg-black text-white border-black' 
-                          : 'bg-transparent text-black border-black hover:bg-gray-50'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+              {/* Size Selection - alleen tonen als er maten zijn */}
+              {displaySizes.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Maat</h3>
+                  <div className="grid grid-cols-5 gap-2">
+                    {displaySizes.map((size) => (
+                      <button 
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`py-2 px-2 rounded-lg text-sm font-medium transition-colors border ${
+                          selectedSize === size
+                            ? 'bg-black text-white border-black' 
+                            : 'bg-transparent text-black border-black hover:bg-gray-50'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               
               {/* Description */}
               {product.description && (
@@ -478,25 +591,27 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 </div>
               )}
               
-              {/* Size Selection */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Maat</h3>
-                <div className="grid grid-cols-5 gap-2">
-                  {sizes.map((size) => (
-                    <button 
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`py-3 px-4 rounded-lg text-base font-medium transition-colors border ${
-                        selectedSize === size
-                          ? 'bg-black text-white border-black' 
-                          : 'bg-transparent text-black border-black hover:bg-gray-50'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+              {/* Size Selection - alleen tonen als er maten zijn */}
+              {displaySizes.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Maat</h3>
+                  <div className="grid grid-cols-5 gap-2">
+                    {displaySizes.map((size) => (
+                      <button 
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`py-3 px-4 rounded-lg text-base font-medium transition-colors border ${
+                          selectedSize === size
+                            ? 'bg-black text-white border-black' 
+                            : 'bg-transparent text-black border-black hover:bg-gray-50'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               
               {/* Description */}
               {product.description && (
@@ -534,14 +649,15 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               </div>
 
               {/* Price & Add to Cart */}
-              <div className="flex flex-col gap-3 pt-2">
-                <span className="text-2xl font-bold text-gray-900">€ {(product.price * quantity).toFixed(2)}</span>
+              <div className="bg-black rounded-lg p-4 flex flex-col gap-3">
+                <span className="text-2xl font-bold text-white">€ {(product.price * quantity).toFixed(2)}</span>
                 <button 
                   onClick={handleAddToCart}
+                  disabled={addedToCart}
                   className={`w-full px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm ${
                     addedToCart
-                      ? 'bg-green-500 text-white'
-                      : 'bg-black text-white hover:bg-gray-800 hover:shadow-lg active:scale-[0.98]'
+                      ? 'bg-green-500 text-white cursor-not-allowed'
+                      : 'bg-white text-black hover:bg-gray-100 hover:shadow-lg active:scale-[0.98]'
                   }`}
                 >
                   {addedToCart ? (
@@ -557,50 +673,52 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 </button>
               </div>
 
-              {/* View Cart Link */}
-              {addedToCart && (
-                <button
-                  onClick={openCart}
-                  className="w-full text-[#8B4513] hover:underline text-sm font-medium animate-[fadeIn_0.3s_ease-in-out]"
-                >
-                  Bekijk winkelwagen
-                </button>
-              )}
+                {/* View Cart Link */}
+                {addedToCart && (
+                  <button
+                    onClick={openCart}
+                    className="w-full text-white hover:text-gray-300 hover:underline text-sm font-medium animate-[fadeIn_0.3s_ease-in-out]"
+                  >
+                    Bekijk winkelwagen
+                  </button>
+                )}
             </div>
 
             {/* Mobile: Andere Must-Haves */}
             {relatedProducts.length > 0 && (
               <div className="mt-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Andere Must-Haves</h2>
-                {relatedProducts.map((relatedProduct) => (
-                  <div key={relatedProduct.id} className="group mb-4">
-                    <Link href={`/product/${relatedProduct.id}`} className="block">
-                      <div className="bg-white rounded-lg mb-3 overflow-hidden group-active:scale-[0.98] transition-transform flex items-center justify-center p-4" style={{ height: '180px' }}>
-                        {relatedProduct.image_url ? (
-                          <div className="relative w-full h-full">
-                            <Image
-                              src={relatedProduct.image_url}
-                              alt={relatedProduct.name}
-                              width={200}
-                              height={180}
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-gray-500 text-xs">Geen afbeelding</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-gray-900 text-xs group-active:text-[#8B4513] transition-colors truncate flex-1 mr-2">
-                          {relatedProduct.name}
-                        </h3>
-                        <p className="text-gray-600 text-xs font-medium shrink-0">€{relatedProduct.price.toFixed(2)}</p>
-                      </div>
-                    </Link>
-                  </div>
-                ))}
+                <div className="grid grid-cols-2 gap-3">
+                  {relatedProducts.slice(0, 2).map((relatedProduct) => (
+                    <div key={relatedProduct.id} className="group">
+                      <Link href={`/product/${relatedProduct.id}`} className="block">
+                        <div className="bg-white rounded-lg mb-2 overflow-hidden group-active:scale-[0.98] transition-transform flex items-center justify-center p-2" style={{ height: '150px' }}>
+                          {relatedProduct.image_url ? (
+                            <div className="relative w-full h-full">
+                              <Image
+                                src={relatedProduct.image_url}
+                                alt={relatedProduct.name}
+                                width={200}
+                                height={150}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-gray-500 text-xs">Geen afbeelding</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <h3 className="font-medium text-gray-900 text-xs group-active:text-[#8B4513] transition-colors truncate mb-1">
+                            {relatedProduct.name}
+                          </h3>
+                          <p className="text-gray-600 text-xs font-medium">€{relatedProduct.price.toFixed(2)}</p>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -609,15 +727,16 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
           <div className="hidden md:block col-6 mt-8">
             <div className="flex flex-col h-full">
               {/* Price & Add to Cart */}
-              <div className="bg-white p-6 rounded-lg mb-4">
+              <div className="bg-black p-6 rounded-lg mb-4">
                 <div className="flex flex-row items-center justify-between gap-0">
-                  <span className="text-3xl font-bold text-gray-900">€ {(product.price * quantity).toFixed(2)}</span>
+                  <span className="text-3xl font-bold text-white">€ {(product.price * quantity).toFixed(2)}</span>
                   <button 
                     onClick={handleAddToCart}
+                    disabled={addedToCart}
                     className={`w-auto px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-base ${
                       addedToCart
-                        ? 'bg-green-500 text-white'
-                        : 'bg-black text-white hover:bg-gray-800 hover:shadow-lg active:scale-[0.98]'
+                        ? 'bg-green-500 text-white cursor-not-allowed'
+                        : 'bg-white text-black hover:bg-gray-100 hover:shadow-lg active:scale-[0.98]'
                     }`}
                   >
                     {addedToCart ? (
@@ -637,7 +756,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 {addedToCart && (
                   <button
                     onClick={openCart}
-                    className="w-full text-[#8B4513] hover:underline text-sm font-medium animate-[fadeIn_0.3s_ease-in-out] mt-3"
+                    className="w-full text-white hover:text-gray-300 hover:underline text-sm font-medium animate-[fadeIn_0.3s_ease-in-out] mt-3"
                   >
                     Bekijk winkelwagen
                   </button>

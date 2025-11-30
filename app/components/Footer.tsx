@@ -70,7 +70,7 @@ export default function Footer() {
                   placeholder="Je email adres" 
                   className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-[#8B4513] text-gray-900 text-sm"
                 />
-                <button className="w-full px-4 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm">
+                <button className="w-full px-4 py-2 bg-black text-white border-2 border-black rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors">
                   Abonneer
                 </button>
               </div>
@@ -137,7 +137,7 @@ export default function Footer() {
                 placeholder="Vul hier je email in" 
                 className="w-full px-3 py-2 border-b border-black focus:outline-none focus:border-black text-gray-600"
               />
-              <button className="px-4 py-2 border border-black text-black rounded-lg hover:bg-gray-50 transition-colors">
+              <button className="px-4 py-2 bg-white text-black border-2 border-gray-300 rounded-lg font-medium text-sm hover:border-black transition-colors">
                 Abonneer
               </button>
             </div>

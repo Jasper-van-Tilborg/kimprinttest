@@ -172,20 +172,20 @@ function AccountContent() {
               <div className="flex space-x-4 mb-8">
                 <button
                   onClick={() => setIsLogin(true)}
-                  className={`flex-1 py-3 px-6 rounded-lg font-medium transition-colors border ${
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-colors border-2 ${
                     isLogin
                       ? "bg-black text-white border-black"
-                      : "bg-transparent text-black border-black hover:bg-gray-50"
+                      : "bg-white text-black border-gray-300 hover:border-black"
                   }`}
                 >
                   Inloggen
                 </button>
                 <button
                   onClick={() => setIsLogin(false)}
-                  className={`flex-1 py-3 px-6 rounded-lg font-medium transition-colors border ${
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-colors border-2 ${
                     !isLogin
                       ? "bg-black text-white border-black"
-                      : "bg-transparent text-black border-black hover:bg-gray-50"
+                      : "bg-white text-black border-gray-300 hover:border-black"
                   }`}
                 >
                   Registreren
@@ -256,7 +256,7 @@ function AccountContent() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50"
+                      className="w-full px-4 py-2 bg-black text-white border-2 border-black rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
                     >
                       {loading ? "Bezig..." : "Inloggen"}
                     </button>
@@ -379,7 +379,7 @@ function AccountContent() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50"
+                      className="w-full px-4 py-2 bg-black text-white border-2 border-black rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
                     >
                       {loading ? "Bezig..." : "Account aanmaken"}
                     </button>

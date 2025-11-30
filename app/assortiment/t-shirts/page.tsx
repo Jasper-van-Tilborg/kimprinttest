@@ -4,25 +4,60 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase, Product } from "../../../lib/supabase";
 export default function TShirtsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]); // Alle producten voor filter opties
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"popular" | "price-low" | "price-high" | "newest">("popular");
   const [selectedColor, setSelectedColor] = useState<string>("all");
   const [selectedSize, setSelectedSize] = useState<string>("all");
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  // Kleuren en maten voor filters
-  const colors = ["Zwart", "Wit", "Grijs", "Blauw", "Rood", "Groen"];
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+  // Bepaal beschikbare kleuren en maten op basis van alle producten
+  const availableColors = Array.from(
+    new Set(
+      allProducts
+        .flatMap((product) => 
+          product.colors && Array.isArray(product.colors) 
+            ? product.colors.map((color: any) => color.name).filter(Boolean)
+            : []
+        )
+    )
+  ).sort();
 
+  const availableSizes = Array.from(
+    new Set(
+      allProducts
+        .flatMap((product) => 
+          product.sizes && Array.isArray(product.sizes) 
+            ? product.sizes 
+            : []
+        )
+    )
+  ).sort();
+
+  // Haal eerst alle producten op (zonder filters) om beschikbare opties te bepalen
   useEffect(() => {
-    fetchProducts();
-  }, [sortBy]);
+    async function fetchAllProducts() {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .ilike('category', '%t-shirt%');
 
-  const fetchProducts = async () => {
+        if (error) throw error;
+        setAllProducts(data || []);
+      } catch (err) {
+        console.error('Error fetching all products:', err);
+      }
+    }
+
+    fetchAllProducts();
+  }, []);
+
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase
@@ -50,13 +85,45 @@ export default function TShirtsPage() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setProducts(data || []);
+      
+      // Filter producten op kleur en maat
+      let filteredProducts = data || [];
+      
+      // Filter op kleur
+      if (selectedColor !== "all") {
+        filteredProducts = filteredProducts.filter((product) => {
+          // Check of het product een kleur heeft die overeenkomt
+          if (product.colors && Array.isArray(product.colors)) {
+            return product.colors.some((color: any) => 
+              color.name && color.name.toLowerCase() === selectedColor.toLowerCase()
+            );
+          }
+          return false;
+        });
+      }
+      
+      // Filter op maat
+      if (selectedSize !== "all") {
+        filteredProducts = filteredProducts.filter((product) => {
+          // Check of het product de geselecteerde maat heeft
+          if (product.sizes && Array.isArray(product.sizes)) {
+            return product.sizes.includes(selectedSize);
+          }
+          return false;
+        });
+      }
+      
+      setProducts(filteredProducts);
     } catch (err) {
       console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [sortBy, selectedColor, selectedSize]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -163,7 +230,7 @@ export default function TShirtsPage() {
                         Alle kleuren
                       </span>
                     </label>
-                    {colors.map((color) => (
+                    {availableColors.map((color) => (
                       <label key={color} className="flex items-center gap-2 cursor-pointer group">
                         <input
                           type="radio"
@@ -199,7 +266,7 @@ export default function TShirtsPage() {
                         Alle maten
                       </span>
                     </label>
-                    {sizes.map((size) => (
+                    {availableSizes.map((size) => (
                       <label key={size} className="flex items-center gap-2 cursor-pointer group">
                         <input
                           type="radio"
@@ -223,7 +290,7 @@ export default function TShirtsPage() {
                       setSelectedColor("all");
                       setSelectedSize("all");
                     }}
-                    className="w-full py-2 text-sm text-[#8B4513] hover:text-[#6d3710] font-medium transition-colors border border-[#8B4513] rounded-lg"
+                    className="w-full px-4 py-2 bg-white text-black border-2 border-gray-300 rounded-lg font-medium text-sm hover:border-black transition-colors"
                   >
                     Reset filters
                   </button>
@@ -276,7 +343,7 @@ export default function TShirtsPage() {
                       Alle kleuren
                     </span>
                   </label>
-                  {colors.map((color) => (
+                  {availableColors.map((color) => (
                     <label key={color} className="flex items-center gap-3 cursor-pointer group">
                       <input
                         type="radio"
@@ -313,7 +380,7 @@ export default function TShirtsPage() {
                       Alle maten
                     </span>
                   </label>
-                  {sizes.map((size) => (
+                  {availableSizes.map((size) => (
                     <label key={size} className="flex items-center gap-3 cursor-pointer group">
                       <input
                         type="radio"
@@ -380,17 +447,47 @@ export default function TShirtsPage() {
                   >
                     <Link href={`/product/${product.id}`}>
                       <div className="relative bg-gray-200 h-64 md:h-96 flex items-center justify-center overflow-hidden">
-                        {product.image_url ? (
-                          <Image
-                            src={product.image_url}
-                            alt={product.name}
-                            width={400}
-                            height={400}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          />
-                        ) : (
-                          <span className="text-gray-400 text-xs md:text-base">Product Foto</span>
-                        )}
+                        {/* Bepaal welke afbeeldingen te tonen */}
+                        {(() => {
+                          // Probeer eerst de tweede afbeelding uit de images array
+                          const secondImage = product.images && product.images.length > 1 ? product.images[1] : null;
+                          // Of probeer de tweede afbeelding uit de eerste kleur
+                          const secondImageFromColor = product.colors && product.colors.length > 0 && product.colors[0].images && product.colors[0].images.length > 1 
+                            ? product.colors[0].images[1] 
+                            : null;
+                          // Of gebruik de eerste afbeelding uit images array als die bestaat
+                          const firstImageFromArray = product.images && product.images.length > 0 ? product.images[0] : null;
+                          // Fallback naar image_url
+                          const primaryImage = firstImageFromArray || product.image_url;
+                          const hoverImage = secondImage || secondImageFromColor;
+                          
+                          return primaryImage ? (
+                            <>
+                              {/* Primaire afbeelding - altijd zichtbaar */}
+                              <Image
+                                src={primaryImage}
+                                alt={product.name}
+                                width={400}
+                                height={400}
+                                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                                  hoverImage ? 'group-hover:opacity-0' : 'group-hover:scale-110'
+                                }`}
+                              />
+                              {/* Tweede afbeelding - alleen zichtbaar bij hover als deze bestaat */}
+                              {hoverImage && (
+                                <Image
+                                  src={hoverImage}
+                                  alt={`${product.name} - tweede afbeelding`}
+                                  width={400}
+                                  height={400}
+                                  className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-gray-400 text-xs md:text-base">Product Foto</span>
+                          );
+                        })()}
                       </div>
                     </Link>
                     
@@ -455,17 +552,47 @@ export default function TShirtsPage() {
                 >
                   <Link href={`/product/${product.id}`}>
                     <div className="relative bg-gray-200 h-64 flex items-center justify-center overflow-hidden">
-                      {product.image_url ? (
-                        <Image
-                          src={product.image_url}
-                          alt={product.name}
-                          width={400}
-                          height={400}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        />
-                      ) : (
-                        <span className="text-gray-400 text-xs">Product Foto</span>
-                      )}
+                      {/* Bepaal welke afbeeldingen te tonen */}
+                      {(() => {
+                        // Probeer eerst de tweede afbeelding uit de images array
+                        const secondImage = product.images && product.images.length > 1 ? product.images[1] : null;
+                        // Of probeer de tweede afbeelding uit de eerste kleur
+                        const secondImageFromColor = product.colors && product.colors.length > 0 && product.colors[0].images && product.colors[0].images.length > 1 
+                          ? product.colors[0].images[1] 
+                          : null;
+                        // Of gebruik de eerste afbeelding uit images array als die bestaat
+                        const firstImageFromArray = product.images && product.images.length > 0 ? product.images[0] : null;
+                        // Fallback naar image_url
+                        const primaryImage = firstImageFromArray || product.image_url;
+                        const hoverImage = secondImage || secondImageFromColor;
+                        
+                        return primaryImage ? (
+                          <>
+                            {/* Primaire afbeelding - altijd zichtbaar */}
+                            <Image
+                              src={primaryImage}
+                              alt={product.name}
+                              width={400}
+                              height={400}
+                              className={`w-full h-full object-cover transition-opacity duration-300 ${
+                                hoverImage ? 'group-hover:opacity-0' : 'group-hover:scale-110'
+                              }`}
+                            />
+                            {/* Tweede afbeelding - alleen zichtbaar bij hover als deze bestaat */}
+                            {hoverImage && (
+                              <Image
+                                src={hoverImage}
+                                alt={`${product.name} - tweede afbeelding`}
+                                width={400}
+                                height={400}
+                                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Product Foto</span>
+                        );
+                      })()}
                     </div>
                   </Link>
                   

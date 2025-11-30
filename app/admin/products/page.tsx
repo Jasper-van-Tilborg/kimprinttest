@@ -24,7 +24,7 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("Hoodies");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"products" | "categories">("products");
   const [categories, setCategories] = useState<{ id: string; name: string; description: string }[]>([]);
@@ -316,55 +316,46 @@ export default function AdminProducts() {
         </div>
       </section>
 
-      {/* Filters Section */}
+      {/* Category Filter Buttons & Search */}
       <section className="pb-8">
         <div className="grid-12">
-          <div className="col-12">
-            <div className="bg-white rounded-lg p-8 border border-gray-200 shadow-sm">
-              <h2 className="font-bold text-black mb-6 text-xl">Filteren & Zoeken</h2>
-              <div className="flex gap-4">
-                {/* Zoeken */}
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Zoeken
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Zoek op naam of omschrijving..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors text-black"
-                  />
-                </div>
-
-                {/* Categorie Filter */}
-                <div className="w-64">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Categorie
-                  </label>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black bg-white transition-colors text-black"
-                  >
-                    <option value="all">Alle Categorieën</option>
-                    {productCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              {(searchQuery || selectedCategory !== "all") && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    <span className="font-semibold">{filteredProducts.length}</span> van de{" "}
-                    <span className="font-semibold">{products.length}</span> producten weergegeven
-                  </p>
-                </div>
-              )}
+          <div className="col-12 flex items-center justify-between gap-4">
+            {/* Category Buttons */}
+            <div className="flex flex-wrap gap-3 flex-1">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.name)}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all border ${
+                    selectedCategory === category.name
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-black border-gray-300 hover:border-black hover:bg-gray-50"
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+              <button
+                onClick={() => setSelectedCategory("all")}
+                className={`px-6 py-3 rounded-lg font-medium transition-all border ml-auto ${
+                  selectedCategory === "all"
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-black border-gray-300 hover:border-black hover:bg-gray-50"
+                }`}
+              >
+                Alle Categorieën
+              </button>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="w-64">
+              <input
+                type="text"
+                placeholder="Zoek op naam of omschrijving..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors text-black"
+              />
             </div>
           </div>
         </div>

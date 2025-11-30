@@ -741,7 +741,7 @@ export default function MaakJeEigenProduct() {
                     <button
                       onClick={handleAddToCart}
                       disabled={isAdding || !uploadedImage}
-                      className={`w-full py-3 bg-black text-white rounded-lg font-medium transition-colors ${
+                      className={`w-full px-4 py-2 bg-black text-white rounded-lg font-medium text-sm border-2 border-black transition-colors ${
                         isAdding || !uploadedImage
                           ? "opacity-50 cursor-not-allowed"
                           : "hover:bg-gray-800"
@@ -752,10 +752,10 @@ export default function MaakJeEigenProduct() {
                     <button
                       onClick={handleSaveDraft}
                       disabled={isSaving || !uploadedImage}
-                      className={`w-full py-3 border-2 border-black text-black rounded-lg font-medium transition-colors ${
+                      className={`w-full px-4 py-2 border-2 border-gray-300 bg-white text-black rounded-lg font-medium text-sm transition-colors ${
                         isSaving || !uploadedImage
                           ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-gray-50"
+                          : "hover:border-black"
                       }`}
                     >
                       {isSaving ? "Opslaan..." : "Opslaan als concept"}

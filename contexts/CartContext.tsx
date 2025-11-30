@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 export type CartItem = {
   id: string;
@@ -30,6 +30,12 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const addingItemsRef = useRef<Map<string, number>>(null);
+  
+  // Initialiseer de Map als deze nog niet bestaat
+  if (!addingItemsRef.current) {
+    addingItemsRef.current = new Map();
+  }
 
   // Laad cart uit localStorage bij mount
   useEffect(() => {
@@ -49,6 +55,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const addItem = (newItem: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
+    // Zorg ervoor dat de ref altijd een Map is
+    if (!(addingItemsRef.current instanceof Map)) {
+      addingItemsRef.current = new Map();
+    }
+    
+    // Maak een unieke key voor dit item (id + color + size)
+    const itemKey = `${newItem.id}-${newItem.color || 'no-color'}-${newItem.size || 'no-size'}`;
+    
+    // Gebruik een timestamp om dubbele calls binnen dezelfde milliseconde te voorkomen
+    const now = Date.now();
+    const lastAddTime = addingItemsRef.current.get(itemKey) || 0;
+    
+    // Als dit item binnen de laatste 500ms al is toegevoegd, negeer deze call
+    if (now - lastAddTime < 500) {
+      return; // Voorkom dubbele toevoeging
+    }
+    
+    // Markeer als bezig met huidige timestamp
+    addingItemsRef.current.set(itemKey, now);
+    
     setItems((currentItems) => {
       // Check of item met dezelfde id, kleur en maat al bestaat
       const existingItemIndex = currentItems.findIndex(
@@ -59,15 +85,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (existingItemIndex > -1) {
-        // Update bestaand item
+        // Update bestaand item - verhoog quantity met exact de opgegeven quantity
         const updated = [...currentItems];
-        updated[existingItemIndex].quantity += newItem.quantity || 1;
+        const quantityToAdd = newItem.quantity || 1;
+        updated[existingItemIndex] = {
+          ...updated[existingItemIndex],
+          quantity: updated[existingItemIndex].quantity + quantityToAdd
+        };
+        
         return updated;
       } else {
         // Voeg nieuw item toe
-        return [...currentItems, { ...newItem, quantity: newItem.quantity || 1 }];
+        const newCartItem = { ...newItem, quantity: newItem.quantity || 1 };
+        return [...currentItems, newCartItem];
       }
     });
+    
+    // Verwijder de markering na 500ms
+    setTimeout(() => {
+      addingItemsRef.current.delete(itemKey);
+    }, 500);
   };
 
   const removeItem = (id: string, color?: string, size?: string) => {

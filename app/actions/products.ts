@@ -89,6 +89,7 @@ export type Product = {
   image_url: string | null;
   images: string[] | null;
   colors: ColorVariant[] | null;
+  sizes: string[] | null;
   sales_count: number;
   created_at: string;
   updated_at: string;
@@ -150,6 +151,7 @@ export async function createProduct(formData: FormData) {
   const stock = formData.get("stock") as string;
   const imageFile = formData.get("image") as File | null;
   const imagesInput = formData.get("images") as string;
+  const sizesInput = formData.get("sizes") as string;
 
   // Validation
   if (!name || !price || !category) {
@@ -178,6 +180,17 @@ export async function createProduct(formData: FormData) {
     }
   }
 
+  // Parse sizes if provided
+  let sizes: string[] | null = null;
+  if (sizesInput) {
+    try {
+      sizes = JSON.parse(sizesInput);
+    } catch {
+      // If not JSON, treat as comma-separated string
+      sizes = sizesInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+  }
+
   // Insert into database
   const { error } = await supabase.from("products").insert({
     name,
@@ -187,6 +200,7 @@ export async function createProduct(formData: FormData) {
     stock: parseInt(stock) || 0,
     image_url: image_url || null,
     images: images,
+    sizes: sizes && sizes.length > 0 ? sizes : null,
     sales_count: 0,
   });
 
@@ -231,6 +245,7 @@ export async function updateProduct(id: string, formData: FormData) {
   const stock = formData.get("stock") as string;
   const imageFile = formData.get("image") as File | null;
   const imagesInput = formData.get("images") as string;
+  const sizesInput = formData.get("sizes") as string;
   const removeImage = formData.get("removeImage") === "true";
 
   // Validation
@@ -280,6 +295,25 @@ export async function updateProduct(id: string, formData: FormData) {
     images = currentProduct?.images || null;
   }
 
+  // Parse sizes if provided
+  let sizes: string[] | null = null;
+  if (sizesInput) {
+    try {
+      sizes = JSON.parse(sizesInput);
+    } catch {
+      // If not JSON, treat as comma-separated string
+      sizes = sizesInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+  } else {
+    // Keep existing sizes if not provided
+    const { data: currentProductWithSizes } = await supabase
+      .from("products")
+      .select("sizes")
+      .eq("id", id)
+      .single();
+    sizes = currentProductWithSizes?.sizes || null;
+  }
+
   const { error } = await supabase
     .from("products")
     .update({
@@ -290,6 +324,7 @@ export async function updateProduct(id: string, formData: FormData) {
       stock: parseInt(stock) || 0,
       image_url: image_url || null,
       images: images,
+      sizes: sizes && sizes.length > 0 ? sizes : null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);

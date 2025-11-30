@@ -21,6 +21,7 @@ export type Product = {
   image_url?: string;
   images?: string[];
   colors?: ColorVariant[];
+  sizes?: string[];
   created_at?: string;
   updated_at?: string;
 };

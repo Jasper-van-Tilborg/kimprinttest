@@ -156,7 +156,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
           {/* Mobile Search Bar - Full Width */}
           {isSearchOpen && (
             <div className="border-t border-gray-200 bg-white px-4 py-3">
-              <div className="flex items-center gap-3 w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 bg-white focus-within:border-[#8B4513] transition-colors">
+              <div className="flex items-center gap-2 w-full border-2 border-gray-300 rounded-lg px-3 py-2.5 bg-white focus-within:border-[#8B4513] transition-colors">
                 <Image 
                   src="/images/icons/Search.svg" 
                   alt="Search" 
@@ -170,7 +170,7 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
-                  className="flex-1 outline-none text-gray-900 placeholder-gray-400 text-sm"
+                  className="flex-1 outline-none text-gray-900 placeholder-gray-400 text-sm min-w-0"
                 />
                 {searchQuery && (
                   <button
@@ -178,7 +178,8 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
                       setSearchQuery("");
                       setSearchResults([]);
                     }}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 shrink-0 p-1"
+                    aria-label="Clear search"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -391,15 +392,15 @@ export default function Navbar({ activePage = 'home' }: NavbarProps) {
 
       {/* Search Results Dropdown */}
       <div 
-        className={`fixed md:absolute left-0 right-0 top-[64px] md:top-[63px] bg-white shadow-2xl z-40 border-t border-gray-200 transition-all duration-300 ease-in-out ${
+        className={`fixed md:absolute left-0 right-0 top-[112px] md:top-[63px] bg-white shadow-2xl z-40 border-t border-gray-200 transition-all duration-300 ease-in-out ${
           isSearchOpen && (searchQuery.trim() !== "" || isSearching)
-            ? 'opacity-100 translate-y-0 max-h-[calc(100vh-64px)] md:max-h-[600px]'
+            ? 'opacity-100 translate-y-0 max-h-[calc(100vh-112px)] md:max-h-[600px]'
             : 'opacity-0 -translate-y-4 max-h-0 overflow-hidden pointer-events-none'
         }`}
       >
         {/* Mobile Search Results */}
         <div className="md:hidden">
-          <div className="max-h-[calc(100vh-64px)] overflow-y-auto p-4">
+          <div className="max-h-[calc(100vh-112px)] overflow-y-auto p-4">
             {isSearching ? (
               <div className="text-center py-8 text-gray-500 animate-pulse">
                 <div className="inline-block w-8 h-8 border-4 border-gray-300 border-t-[#8B4513] rounded-full animate-spin mb-2"></div>

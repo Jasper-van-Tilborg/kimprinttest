@@ -78,7 +78,7 @@ export default function CheckoutPage() {
               <p className="text-gray-600 mb-8">Voeg producten toe om af te rekenen</p>
               <Link
                 href="/assortiment"
-                className="inline-block bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+                className="inline-block px-4 py-2 bg-black text-white border-2 border-black rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors"
               >
                 Naar Assortiment
               </Link>
@@ -130,13 +130,13 @@ export default function CheckoutPage() {
                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
                   <Link
                     href="/"
-                    className="bg-black text-white px-6 md:px-10 py-3 md:py-4 rounded-lg hover:bg-gray-800 transition-all hover:shadow-lg font-medium text-base md:text-lg"
+                    className="px-4 py-2 bg-black text-white border-2 border-black rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors"
                   >
                     Terug naar Home
                   </Link>
                   <Link
                     href="/assortiment"
-                    className="bg-white border-2 border-black text-black px-6 md:px-10 py-3 md:py-4 rounded-lg hover:bg-gray-50 transition-all hover:shadow-lg font-medium text-base md:text-lg"
+                    className="px-4 py-2 bg-white text-black border-2 border-gray-300 rounded-lg font-medium text-sm hover:border-black transition-colors"
                   >
                     Verder Winkelen
                   </Link>
@@ -399,17 +399,17 @@ export default function CheckoutPage() {
                       <div className="flex flex-col gap-3">
                         <button
                           onClick={() => setStep(1)}
-                          className="flex-1 py-3 border-2 border-gray-300 rounded-lg font-medium text-base hover:bg-gray-50 transition-colors"
+                          className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg font-medium text-sm bg-white text-black hover:border-black transition-colors"
                         >
                           ← Terug
                         </button>
                         <button
                           onClick={handlePlaceOrder}
                           disabled={!acceptedTerms}
-                          className={`flex-1 py-3 rounded-lg font-medium text-base transition-all ${
+                          className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm border-2 transition-colors ${
                             acceptedTerms
-                              ? 'bg-black text-white hover:bg-gray-800'
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              ? 'bg-black text-white border-black hover:bg-gray-800'
+                              : 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
                           }`}
                         >
                           Bestelling Plaatsen

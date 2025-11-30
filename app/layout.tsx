@@ -6,6 +6,9 @@ import ClientLayout from "./components/ClientLayout";
 const outfit = Outfit({
   variable: "--font-outfit",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
+  fallback: ["system-ui", "arial"],
 });
 
 export const metadata: Metadata = {

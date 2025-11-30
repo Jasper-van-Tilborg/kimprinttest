@@ -220,17 +220,47 @@ export default function EditProduct() {
           }
         }
 
-        // Voeg nieuwe bestanden toe aan bestaande
-        setSelectedFiles((prev) => [...prev, ...files]);
         setError("");
 
-        // Maak previews voor alle nieuwe bestanden
-        files.forEach((file) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setPreviewUrls((prev) => [...prev, reader.result as string]);
-          };
-          reader.readAsDataURL(file);
+        // Voeg bestanden toe aan de eerste kleur (of maak een nieuwe kleur aan als er geen zijn)
+        setColors((prev) => {
+          if (prev.length === 0) {
+            // Maak een nieuwe kleur aan als er geen zijn
+            const newColor: ColorVariant = {
+              id: Date.now().toString(),
+              name: "",
+              colorCode: "#000000",
+              files: files,
+              previewUrls: files.map(file => URL.createObjectURL(file)),
+              existingImages: [],
+            };
+            return [newColor];
+          } else {
+            // Voeg toe aan de eerste kleur
+            return prev.map((c, index) => {
+              if (index === 0) {
+                // Filter duplicaten
+                const existingFileKeys = new Set(
+                  c.files.map(f => `${f.name}-${f.size}-${f.lastModified}`)
+                );
+                const uniqueNewFiles = files.filter(
+                  file => !existingFileKeys.has(`${file.name}-${file.size}-${file.lastModified}`)
+                );
+                
+                if (uniqueNewFiles.length === 0) {
+                  return c;
+                }
+
+                const newPreviewUrls = uniqueNewFiles.map(file => URL.createObjectURL(file));
+                return {
+                  ...c,
+                  files: [...c.files, ...uniqueNewFiles],
+                  previewUrls: [...c.previewUrls, ...newPreviewUrls],
+                };
+              }
+              return c;
+            });
+          }
         });
       }
     };

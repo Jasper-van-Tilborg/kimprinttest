@@ -4,12 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase, Product } from "../../lib/supabase";
 import { getCollectionBySlug, getProductsInCollection, type Collection } from "../actions/collections";
 
-export default function Assortiment() {
+function AssortimentContent() {
   const searchParams = useSearchParams();
   const collectionSlug = searchParams.get('collection');
   const [currentCollection, setCurrentCollection] = useState<Collection | null>(null);
@@ -490,7 +490,7 @@ export default function Assortiment() {
       </section>
 
       {/* Best Sellers Section */}
-      {!collection && (
+      {!collectionSlug && (
         <section className="py-6 md:py-16 bg-white">
           <div className="grid-12">
             <div className="col-12">
@@ -638,5 +638,17 @@ export default function Assortiment() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function Assortiment() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+        <div className="text-xl">Laden...</div>
+      </div>
+    }>
+      <AssortimentContent />
+    </Suspense>
   );
 }

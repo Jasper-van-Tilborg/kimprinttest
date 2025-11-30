@@ -103,7 +103,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     
     // Verwijder de markering na 500ms
     setTimeout(() => {
-      addingItemsRef.current.delete(itemKey);
+      if (addingItemsRef.current) {
+        addingItemsRef.current.delete(itemKey);
+      }
     }, 500);
   };
 

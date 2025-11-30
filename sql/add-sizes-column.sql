@@ -23,3 +23,4 @@ CREATE INDEX IF NOT EXISTS idx_products_sizes ON products USING GIN (sizes);
 
 
 
+

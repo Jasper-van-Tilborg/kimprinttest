@@ -110,3 +110,4 @@ Na implementatie, test opnieuw met Lighthouse en check:
 - FID (First Input Delay) - doel: < 100ms
 - CLS (Cumulative Layout Shift) - doel: < 0.1
 
+

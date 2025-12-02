@@ -187,47 +187,47 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
       {/* Hero Section */}
-      <section className="py-16">
+      <section className="py-8 md:py-16">
         <div className="grid-12">
           <div className="col-12">
-            <div className="mb-8">
-              <h1 className="text-5xl font-bold text-black mb-4">Dashboard</h1>
-              <p className="text-xl text-gray-700">Overzicht van je winkel</p>
+            <div className="mb-6 md:mb-8">
+              <h1 className="text-3xl md:text-5xl font-bold text-black mb-2 md:mb-4">Dashboard</h1>
+              <p className="text-base md:text-xl text-gray-700">Overzicht van je winkel</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="pb-8">
+      <section className="pb-6 md:pb-8">
         <div className="grid-12">
-          <div className="col-4">
-            <div className="bg-white p-6 rounded-lg">
-              <p className="text-gray-600 text-sm mb-2">Total Producten</p>
+          <div className="col-12 md:col-4 mb-4 md:mb-0">
+            <div className="bg-white p-4 md:p-6 rounded-lg">
+              <p className="text-gray-600 text-xs md:text-sm mb-2">Total Producten</p>
               {statsLoading ? (
-                <p className="text-4xl font-bold text-gray-400">...</p>
+                <p className="text-2xl md:text-4xl font-bold text-gray-400">...</p>
               ) : (
-                <p className="text-4xl font-bold text-black">{stats.totalProducts}</p>
+                <p className="text-2xl md:text-4xl font-bold text-black">{stats.totalProducts}</p>
               )}
             </div>
           </div>
-          <div className="col-4">
-            <div className="bg-white p-6 rounded-lg">
-              <p className="text-gray-600 text-sm mb-2">Bestellingen</p>
+          <div className="col-12 md:col-4 mb-4 md:mb-0">
+            <div className="bg-white p-4 md:p-6 rounded-lg">
+              <p className="text-gray-600 text-xs md:text-sm mb-2">Bestellingen</p>
               {statsLoading ? (
-                <p className="text-4xl font-bold text-gray-400">...</p>
+                <p className="text-2xl md:text-4xl font-bold text-gray-400">...</p>
               ) : (
-                <p className="text-4xl font-bold text-black">{stats.totalOrders}</p>
+                <p className="text-2xl md:text-4xl font-bold text-black">{stats.totalOrders}</p>
               )}
             </div>
           </div>
-          <div className="col-4">
-            <div className="bg-white p-6 rounded-lg">
-              <p className="text-gray-600 text-sm mb-2">Gebruikers</p>
+          <div className="col-12 md:col-4">
+            <div className="bg-white p-4 md:p-6 rounded-lg">
+              <p className="text-gray-600 text-xs md:text-sm mb-2">Gebruikers</p>
               {statsLoading ? (
-                <p className="text-4xl font-bold text-gray-400">...</p>
+                <p className="text-2xl md:text-4xl font-bold text-gray-400">...</p>
               ) : (
-                <p className="text-4xl font-bold text-black">{stats.totalUsers}</p>
+                <p className="text-2xl md:text-4xl font-bold text-black">{stats.totalUsers}</p>
               )}
             </div>
           </div>
@@ -235,63 +235,63 @@ export default function AdminDashboard() {
       </section>
 
       {/* Snelle Acties */}
-      <section className="py-8">
+      <section className="py-6 md:py-8">
         <div className="grid-12">
-          <div className="col-12 mb-6">
-            <h2 className="font-bold text-black underline" style={{ fontSize: '26px' }}>Snelle Acties</h2>
+          <div className="col-12 mb-4 md:mb-6">
+            <h2 className="font-bold text-black underline text-xl md:text-[26px]">Snelle Acties</h2>
           </div>
 
-          <div className="col-3 mb-8">
+          <div className="col-6 md:col-3 mb-4 md:mb-8">
             <Link href="/admin/products?action=new" className="block">
-              <div className="bg-white rounded-lg p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
+              <div className="bg-white rounded-lg p-4 md:p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Nieuw</p>
-                    <h3 className="text-xl font-bold text-black">Product</h3>
+                    <p className="text-xs md:text-sm text-gray-600 mb-1">Nieuw</p>
+                    <h3 className="text-base md:text-xl font-bold text-black">Product</h3>
                   </div>
-                  <div className="text-3xl">+</div>
+                  <div className="text-2xl md:text-3xl">+</div>
                 </div>
               </div>
             </Link>
           </div>
 
-          <div className="col-3 mb-8">
+          <div className="col-6 md:col-3 mb-4 md:mb-8">
             <Link href="/admin/orders?filter=today" className="block">
-              <div className="bg-white rounded-lg p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
+              <div className="bg-white rounded-lg p-4 md:p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Vandaag</p>
-                    <h3 className="text-xl font-bold text-black">Bestellingen</h3>
+                    <p className="text-xs md:text-sm text-gray-600 mb-1">Vandaag</p>
+                    <h3 className="text-base md:text-xl font-bold text-black">Bestellingen</h3>
                   </div>
-                  <div className="text-3xl">→</div>
+                  <div className="text-2xl md:text-3xl">→</div>
                 </div>
               </div>
             </Link>
           </div>
 
-          <div className="col-3 mb-8">
+          <div className="col-6 md:col-3 mb-4 md:mb-8">
             <Link href="/admin/users?action=new" className="block">
-              <div className="bg-white rounded-lg p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
+              <div className="bg-white rounded-lg p-4 md:p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Nieuwe</p>
-                    <h3 className="text-xl font-bold text-black">Gebruiker</h3>
+                    <p className="text-xs md:text-sm text-gray-600 mb-1">Nieuwe</p>
+                    <h3 className="text-base md:text-xl font-bold text-black">Gebruiker</h3>
                   </div>
-                  <div className="text-3xl">+</div>
+                  <div className="text-2xl md:text-3xl">+</div>
                 </div>
               </div>
             </Link>
           </div>
 
-          <div className="col-3 mb-8">
-            <Link href="/admin/collections" className="block">
-              <div className="bg-white rounded-lg p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
+          <div className="col-6 md:col-3 mb-4 md:mb-8">
+            <Link href="/admin/products" className="block">
+              <div className="bg-white rounded-lg p-4 md:p-6 border border-gray-200 hover:border-black transition-all hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Beheer</p>
-                    <h3 className="text-xl font-bold text-black">Collecties</h3>
+                    <p className="text-xs md:text-sm text-gray-600 mb-1">Beheer</p>
+                    <h3 className="text-base md:text-xl font-bold text-black">Categorieën</h3>
                   </div>
-                  <div className="text-3xl">→</div>
+                  <div className="text-2xl md:text-3xl">→</div>
                 </div>
               </div>
             </Link>
@@ -300,12 +300,12 @@ export default function AdminDashboard() {
       </section>
 
       {/* Recente Activiteit & Analytics */}
-      <section className="py-8">
+      <section className="py-6 md:py-8">
         <div className="grid-12">
           {/* Recente Bestellingen */}
-          <div className="col-8 mb-8">
-            <div className="bg-white rounded-lg p-8 border border-gray-200">
-              <h2 className="font-bold text-black mb-6" style={{ fontSize: '26px' }}>Recente Bestellingen</h2>
+          <div className="col-12 md:col-8 mb-6 md:mb-8">
+            <div className="bg-white rounded-lg p-4 md:p-8 border border-gray-200">
+              <h2 className="font-bold text-black mb-4 md:mb-6 text-xl md:text-[26px]">Recente Bestellingen</h2>
               {dataLoading ? (
                 <div className="text-center py-8 text-gray-500">Laden...</div>
               ) : recentOrders.length === 0 ? (
@@ -352,19 +352,19 @@ export default function AdminDashboard() {
                     return (
                       <div 
                         key={order.id} 
-                        className={`flex items-center justify-between ${!isLast ? 'pb-4 border-b border-gray-100' : ''}`}
+                        className={`flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 ${!isLast ? 'pb-4 border-b border-gray-100' : ''}`}
                       >
                         <div className="flex-1">
-                          <p className="font-semibold text-black">Bestelling {order.order_number}</p>
-                          <p className="text-sm text-gray-600">
+                          <p className="font-semibold text-black text-sm md:text-base">Bestelling {order.order_number}</p>
+                          <p className="text-xs md:text-sm text-gray-600">
                             {order.items_count} item{order.items_count !== 1 ? 's' : ''} • €{order.total_amount.toFixed(2)}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <span className={`inline-block ${statusStyle.bg} ${statusStyle.text} px-3 py-1 rounded-full text-xs font-medium`}>
+                        <div className="flex items-center justify-between md:block md:text-right">
+                          <span className={`inline-block ${statusStyle.bg} ${statusStyle.text} px-2 md:px-3 py-1 rounded-full text-xs font-medium`}>
                             {statusStyle.label}
                           </span>
-                          <p className="text-xs text-gray-500 mt-1">{timeText}</p>
+                          <p className="text-xs text-gray-500 mt-1 md:mt-1">{timeText}</p>
                         </div>
                       </div>
                     );
@@ -373,7 +373,7 @@ export default function AdminDashboard() {
               )}
               <Link 
                 href="/admin/orders" 
-                className="block text-center mt-6 text-gray-700 hover:text-black font-medium transition-colors"
+                className="block text-center mt-4 md:mt-6 text-gray-700 hover:text-black font-medium transition-colors text-sm md:text-base"
               >
                 Alle bestellingen bekijken →
               </Link>
@@ -381,18 +381,18 @@ export default function AdminDashboard() {
           </div>
 
           {/* Statistieken Overzicht */}
-          <div className="col-4 mb-8">
-            <div className="bg-white rounded-lg p-8 border border-gray-200 mb-6">
-              <h3 className="font-bold text-black mb-4 text-lg">Verkopen Deze Week</h3>
+          <div className="col-12 md:col-4 mb-6 md:mb-8">
+            <div className="bg-white rounded-lg p-4 md:p-8 border border-gray-200 mb-4 md:mb-6">
+              <h3 className="font-bold text-black mb-3 md:mb-4 text-base md:text-lg">Verkopen Deze Week</h3>
               {dataLoading ? (
                 <div className="text-center py-8 text-gray-500">Laden...</div>
               ) : (
                 <>
                   <div className="mb-4">
-                    <p className="text-4xl font-bold text-black mb-2">€{weekSales.toFixed(2)}</p>
-                    <p className="text-sm text-gray-600">Afgelopen 7 dagen</p>
+                    <p className="text-2xl md:text-4xl font-bold text-black mb-2">€{weekSales.toFixed(2)}</p>
+                    <p className="text-xs md:text-sm text-gray-600">Afgelopen 7 dagen</p>
                   </div>
-                  <div className="mt-6 pt-6 border-t border-gray-100">
+                  <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-100">
                     <p className="text-xs text-gray-500 text-center">
                       Gedetailleerde analyse binnenkort beschikbaar
                     </p>
@@ -401,19 +401,19 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <div className="bg-white rounded-lg p-8 border border-gray-200">
-              <h3 className="font-bold text-black mb-4 text-lg">Top Product</h3>
+            <div className="bg-white rounded-lg p-4 md:p-8 border border-gray-200">
+              <h3 className="font-bold text-black mb-3 md:mb-4 text-base md:text-lg">Top Product</h3>
               {dataLoading ? (
                 <div className="text-center py-4 text-gray-500">Laden...</div>
               ) : topProduct ? (
                 <>
-                  <div className="bg-gray-100 rounded-lg p-4 mb-4">
-                    <p className="font-semibold text-black mb-1">{topProduct.name}</p>
-                    <p className="text-sm text-gray-600">{topProduct.sales_count} keer verkocht</p>
+                  <div className="bg-gray-100 rounded-lg p-3 md:p-4 mb-4">
+                    <p className="font-semibold text-black mb-1 text-sm md:text-base">{topProduct.name}</p>
+                    <p className="text-xs md:text-sm text-gray-600">{topProduct.sales_count} keer verkocht</p>
                   </div>
                   <Link 
                     href="/admin/products" 
-                    className="text-sm text-gray-700 hover:text-black font-medium transition-colors"
+                    className="text-xs md:text-sm text-gray-700 hover:text-black font-medium transition-colors"
                   >
                     Alle producten →
                   </Link>

@@ -405,3 +405,73 @@ export async function getProductsByCategory(category: string): Promise<Product[]
   return data || [];
 }
 
+// GET PRODUCTS BY CATEGORY FILTER (for homepage)
+export async function getProductsByCategoryFilter(categoryFilter: string, limit?: number): Promise<Product[]> {
+  const supabase = await createServer();
+
+  let query = supabase
+    .from("products")
+    .select("*")
+    .ilike("category", `%${categoryFilter}%`)
+    .order("sales_count", { ascending: false });
+
+  if (limit) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Fetch error:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+// GET BEST SELLERS
+export async function getBestSellers(limit: number = 8): Promise<Product[]> {
+  const supabase = await createServer();
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .order("sales_count", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("Fetch error:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+// GET PRODUCTS BY CATEGORIES (for herten collection fallback)
+export async function getProductsByCategories(categories: string[]): Promise<Product[]> {
+  const supabase = await createServer();
+
+  const promises = categories.map(category =>
+    supabase
+      .from("products")
+      .select("*")
+      .ilike("category", `%${category}%`)
+  );
+
+  const results = await Promise.all(promises);
+  const allProducts: Product[] = [];
+
+  for (const result of results) {
+    if (result.error) {
+      console.error("Fetch error:", result.error);
+      continue;
+    }
+    if (result.data) {
+      allProducts.push(...result.data);
+    }
+  }
+
+  // Sorteer op sales_count
+  return allProducts.sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0));
+}
+

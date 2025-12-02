@@ -15,13 +15,13 @@ export type ColorVariant = {
 export type Product = {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
   category: string;
-  image_url?: string;
-  images?: string[];
-  colors?: ColorVariant[];
-  sizes?: string[];
+  image_url?: string | null;
+  images?: string[] | null;
+  colors?: ColorVariant[] | null;
+  sizes?: string[] | null;
   sales_count?: number;
   stock?: number;
   created_at?: string;

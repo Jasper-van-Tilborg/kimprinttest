@@ -11,7 +11,6 @@ export default function AdminHeader({ userEmail, onSignOut }: AdminHeaderProps) 
   const navItems = [
     { href: "/admin/dashboard", label: "Dashboard" },
     { href: "/admin/products", label: "Producten" },
-    { href: "/admin/collections", label: "Collecties" },
     { href: "/admin/orders", label: "Bestellingen" },
     { href: "/admin/users", label: "Gebruikers" },
     { href: "/admin/settings", label: "Instellingen" },

@@ -111,3 +111,8 @@ Na implementatie, test opnieuw met Lighthouse en check:
 - CLS (Cumulative Layout Shift) - doel: < 0.1
 
 
+
+
+
+
+

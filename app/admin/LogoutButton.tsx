@@ -20,7 +20,7 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-all font-medium shadow-sm hover:shadow-md"
+      className="bg-black text-white px-6 md:px-8 py-2 md:py-3 rounded-lg hover:bg-gray-800 transition-all font-medium shadow-sm hover:shadow-md text-sm w-full md:w-auto"
     >
       <span className="flex items-center gap-2">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
